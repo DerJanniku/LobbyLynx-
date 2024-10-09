@@ -1,6 +1,6 @@
 name: LobbyLynx
 version: 1.0
-main: org.derjannik.lobbyLynx.LobbyLynx
+main: org.derjannik.lobbyLynx.main.LobbyLynx
 author: DerJannik
 api-version: 1.21
 commands:

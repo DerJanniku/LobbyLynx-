@@ -10,6 +10,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.derjannik.lobbyLynx.utils.FriendSystem;
 
 import java.util.HashMap;
 import java.util.Map;
