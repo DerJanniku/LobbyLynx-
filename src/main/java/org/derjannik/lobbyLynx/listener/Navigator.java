@@ -1,5 +1,5 @@
 
-package org.derjannik.lobbyLynx.utils;
+package org.derjannik.lobbyLynx.listener;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
