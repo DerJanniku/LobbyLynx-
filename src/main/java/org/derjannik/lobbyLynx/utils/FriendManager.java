@@ -10,7 +10,7 @@ import java.util.*;
 
 public class FriendManager {
     private final JavaPlugin plugin;
-    private final Map<UUID, UUID> friends;
+    private final Map<UUID, List<UUID>> friends;
 
     public FriendManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -20,7 +20,10 @@ public class FriendManager {
     public void addFriend(Player player, Player friend) {
         // Überprüfen, ob der Freund bereits in der Liste ist
         if (!friends.containsKey(player.getUniqueId())) {
-            friends.put(player.getUniqueId(), friend.getUniqueId());
+            friends.put(player.getUniqueId(), new ArrayList<>());
+        }
+        if (!friends.get(player.getUniqueId()).contains(friend.getUniqueId())) {
+            friends.get(player.getUniqueId()).add(friend.getUniqueId());
             // Hinzufügen von Freunden
             ItemStack item = new ItemStack(org.bukkit.Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) item.getItemMeta();
@@ -34,7 +37,7 @@ public class FriendManager {
     public void removeFriend(Player player, UUID friendUUID) {
         // Entfernen von Freunden
         if (friends.containsKey(player.getUniqueId())) {
-            friends.remove(player.getUniqueId());
+            friends.get(player.getUniqueId()).remove(friendUUID);
             Player friend = Bukkit.getPlayer(friendUUID);
             if (friend != null) {
                 ItemStack item = new ItemStack(org.bukkit.Material.PLAYER_HEAD);
@@ -47,6 +50,6 @@ public class FriendManager {
 
     public List<UUID> getFriends(Player player) {
         // Rückgabe der Freunde
-        return new ArrayList<>(friends.values());
+        return friends.getOrDefault(player.getUniqueId(), new ArrayList<>());
     }
 }

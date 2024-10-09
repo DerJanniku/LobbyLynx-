@@ -12,7 +12,7 @@ public class LobbyLynx extends JavaPlugin {
     @Override
     public void onEnable() {
         friendSystem = new FriendSystem(this);
-        friendListener = new FriendListener(friendSystem, this);
+        friendListener = new FriendListener(this, friendSystem);
 
         getServer().getPluginManager().registerEvents(friendListener, this);
     }

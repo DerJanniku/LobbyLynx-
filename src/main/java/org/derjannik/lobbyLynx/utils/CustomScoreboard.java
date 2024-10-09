@@ -3,11 +3,7 @@ package org.derjannik.lobbyLynx.utils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scoreboard.DisplaySlot;
-import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Score;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.ScoreboardManager;
+import org.bukkit.scoreboard.*;
 
 public class CustomScoreboard {
     private static final String SCOREBOARD_NAME = "ServerName";
@@ -20,14 +16,17 @@ public class CustomScoreboard {
     }
 
     public void setScoreboard(Player player) {
-        ScoreboardManager manager = Bukkit.getScoreboardManager();
-        Scoreboard board = manager.getNewScoreboard();
-        Objective objective = board.registerNewObjective("test", "dummy", SCOREBOARD_NAME);
+        ScoreboardManager scoreboardManager = Bukkit.getScoreboardManager();
+        Scoreboard scoreboard = scoreboardManager.getNewScoreboard();
+
+        Objective objective = scoreboard.registerNewObjective("lobbyLynx", "dummy");
+        objective.setDisplayName(SCOREBOARD_NAME);
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        objective.setRenderType(RenderType.INTEGER);
 
-        Score rankScore = objective.getScore(String.format(SCOREBOARD_FORMAT, player.getName()));
-        rankScore.setScore(2);
+        Score playerScore = objective.getScore(player.getName());
+        playerScore.setScore(0);
 
-        player.setScoreboard(board);
+        player.setScoreboard(scoreboard);
     }
 }
