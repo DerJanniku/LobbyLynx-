@@ -5,6 +5,7 @@ author: DerJannik
 api-version: 1.21
 commands:
   friend:
+    class: org.derjannik.lobbyLynx.command.FriendCommand
     description: Manage friends
     usage: /<command> <add|remove|list> <player>
     permission: lobbylynx.friend
