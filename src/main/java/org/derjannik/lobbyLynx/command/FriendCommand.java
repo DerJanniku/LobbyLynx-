@@ -1,34 +1,33 @@
 
-package org.derjannik.lobbyLynx.command;
+package org.derjannik.lobbyLynx.utils;
 
 import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.derjannik.lobbyLynx.utils.FriendSystem;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
-public class FriendCommand implements CommandExecutor {
+public class FriendSystem implements Listener {
 
-    private static final Logger LOGGER = Logger.getLogger(FriendCommand.class.getName());
-    private final FriendSystem plugin;
-    private final Set<UUID> friends = new HashSet<>();
+    private static final Logger LOGGER = Logger.getLogger(FriendSystem.class.getName());
+    private Map<UUID, UUID> friendRequests = new HashMap<>();
 
-    public FriendCommand(FriendSystem plugin) {
-        this.plugin = plugin;
+    public Map<UUID, UUID> getFriendRequests() {
+        return friendRequests;
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("This command can only be used by players.");
-            return true;
-        }
+    public boolean onCommand(org.bukkit.command.CommandSender sender, org.bukkit.command.Command command, String label, String[] args) {
 
         Player player = (Player) sender;
 

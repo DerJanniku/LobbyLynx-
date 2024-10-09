@@ -1,7 +1,7 @@
-
 name: LobbyLynx
 version: 1.0
-main: org.derjannik.lobbyLynx.utils.FriendSystem
+main: org.derjannik.lobbyLynx.LobbyLynx
+author: DerJannik
 api-version: 1.21
 commands:
   friend:
