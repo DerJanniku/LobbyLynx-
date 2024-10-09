@@ -32,15 +32,12 @@ public class FriendSystem {
         }
     }
 
-    public void removeFriend(Player player, Player friend) {
-        UUID playerUUID = player.getUniqueId();
-        UUID friendUUID = friend.getUniqueId();
-
+    public void removeFriend(Player player, UUID friendUUID) {
         if (friends.contains(friendUUID)) {
             friends.remove(friendUUID);
-            plugin.getServer().getConsoleSender().sendMessage("§aFreund entfernt: " + friend.getName());
+            plugin.getServer().getConsoleSender().sendMessage("§aFreund entfernt: " + Bukkit.getPlayer(friendUUID).getName());
         } else {
-            plugin.getServer().getConsoleSender().sendMessage("§cFreund nicht gefunden: " + friend.getName());
+            plugin.getServer().getConsoleSender().sendMessage("§cFreund nicht gefunden: " + Bukkit.getPlayer(friendUUID).getName());
         }
     }
 
@@ -51,7 +48,7 @@ public class FriendSystem {
             Player friend = Bukkit.getPlayer(friendUUID);
             ItemStack item = new ItemStack(org.bukkit.Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) item.getItemMeta();
-            meta.setOwner(friend.getName());
+            meta.setOwningPlayer(friend);
             meta.setDisplayName(friend.getName());
 
             if (friend.isOnline()) {

@@ -1,0 +1,11 @@
+name: LobbyLynx
+version: 1.0
+main: org.derjannik.lobbyLynx.main.LobbyLynx
+author: DerJannik
+api-version: 1.21
+commands:
+  friend:
+    description: Manage friends
+    usage: /<command> <add|remove|list> <player>
+    permission: lobbylynx.friend
+    permission-message: You do not have permission to use this command.
