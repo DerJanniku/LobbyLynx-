@@ -4,6 +4,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.derjannik.lobbyLynx.utils.FriendSystem;
 
 public class FriendListener implements Listener {
@@ -16,6 +18,15 @@ public class FriendListener implements Listener {
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
-        // Logik zum Reagieren auf das Klicken auf einen Freund
+        ItemStack item = event.getItem();
+
+        if (item != null && item.getType() == org.bukkit.Material.PLAYER_HEAD) {
+            SkullMeta meta = (SkullMeta) item.getItemMeta();
+            String displayName = meta.getDisplayName();
+
+            if (displayName.equals("Freunde")) {
+                friendSystem.showFriends(player);
+            }
+        }
     }
 }

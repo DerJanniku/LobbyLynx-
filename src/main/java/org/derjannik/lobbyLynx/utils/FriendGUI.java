@@ -11,10 +11,9 @@ public class FriendGUI {
 
     public FriendGUI(Player player) {
         inventory = Bukkit.createInventory(null, 9, "Freunde");
-        // Logik zum Erstellen der Freundesliste-GUI
     }
 
     public void updateGUI() {
-        // Logik zum Aktualisieren der Freundesliste-GUI
+        // Aktualisieren der Freundesliste-GUI
     }
 }
