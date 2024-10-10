@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+}
+
+group = 'org.derjannik'
+version = '1.0'
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "spigotmc-repo"
+        url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
+    }
+}
+
+dependencies {
+    compileOnly 'org.spigotmc:spigot-api:1.21.1-R0.1-SNAPSHOT'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+        resources {
+            srcDirs = ['src/main/resources ']
+        }
+    }
+}
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand props
+    }
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'LobbyLynx',
+                'Implementation-Version': version
+    }
+}
+
+task buildPlugin(type: Jar) {
+    from sourceSets.main.output
+}
+
+buildPlugin.dependsOn compileJava
+buildPlugin.dependsOn processResources
