@@ -1,6 +1,6 @@
 name: LobbyLynx
 version: 1.0
-main: org.derjannik.lobbyLynx.main.LobbyLynx
+main: org.derjannik.lobbylynx.LobbyLynx
 author: DerJannik
 api-version: 1.21
 commands:
@@ -9,4 +9,22 @@ commands:
     description: Manage friends
     usage: /<command> <add|remove|list> <player>
     permission: lobbylynx.friend
+    permission-message: You do not have permission to use this command.
+  setminigame:
+    class: org.derjannik.lobbyLynx.command.SetMinigameCommand
+    description: Set a minigame location
+    usage: /lynx set minigame <minigame_name> <slot> <item_id/name> <x> <y> <z>
+    permission: lynx.navigator.setminigame
+    permission-message: You do not have permission to use this command.
+  setlobbyspawn:
+    class: org.derjannik.lobbyLynx.command.SetLobbySpawnCommand
+    description: Set the lobby spawn location
+    usage: /lynx set lobbyspawn <slot> <item_id/name> <x> <y> <z>
+    permission: lynx.navigator.setlobbyspawn
+    permission-message: You do not have permission to use this command.
+  lobby:
+    class: org.derjannik.lobbyLynx.command.LobbyCommand
+    description: Teleport to the lobby
+    usage: /lobby
+    permission: lynx.navigator.spawn
     permission-message: You do not have permission to use this command.

@@ -58,7 +58,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.derjannik.lobbyLynx.main.LobbyLynx</mainClass>
+                            <mainClass>org.derjannik.lobbyLynx.LobbyLynx</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
