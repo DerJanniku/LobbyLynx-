@@ -34,8 +34,13 @@ public class LobbyCommand implements CommandExecutor {
 
         Location lobbyLocation = new Location(Bukkit.getWorld("world"), x, y, z);
 
-        player.sendMessage("You have been teleported to the Lobby.");
-        player.teleport(lobbyLocation);
+        player.sendMessage("Teleporting to the Lobby in 3 seconds...");
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                player.sendMessage("You have been teleported to the Lobby.");
+                player.teleport(lobbyLocation);
+            }
+        }, 60L); // 3 seconds delay (20 ticks per second)
 
         return true;
     }

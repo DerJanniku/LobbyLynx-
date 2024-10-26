@@ -1,0 +1,5 @@
+org/derjannik/lobbyLynx/command/SetMinigameCommand.class
+org/derjannik/lobbyLynx/command/LobbyCommand.class
+org/derjannik/lobbylynx/LobbyLynx.class
+org/derjannik/lobbylynx/NavigatorListener.class
+org/derjannik/lobbyLynx/command/SetLobbySpawnCommand.class

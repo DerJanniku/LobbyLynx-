@@ -43,6 +43,7 @@ public class SetLobbySpawnCommand implements CommandExecutor {
         plugin.saveConfig();
 
         sender.sendMessage("Lobby spawn set successfully!");
+
         return true;
     }
 }

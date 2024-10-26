@@ -15,6 +15,9 @@ public class LobbyLynx extends JavaPlugin {
         this.getCommand("setlobbyspawn").setExecutor(new SetLobbySpawnCommand(this));
         this.getCommand("lobby").setExecutor(new LobbyCommand(this));
 
+        // Register event listener
+        getServer().getPluginManager().registerEvents(new NavigatorListener(this), this);
+
         // Load configuration
         this.saveDefaultConfig();
     }

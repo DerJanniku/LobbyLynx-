@@ -1,0 +1,12 @@
+[17:01:26] [ServerMain/INFO]: [bootstrap] Running Java 21 (OpenJDK 64-Bit Server VM 21.0.4+7-Ubuntu-1ubuntu222.04; Ubuntu null) on Linux 5.10.186+ (amd64)
+[17:01:26] [ServerMain/INFO]: [bootstrap] Loading Paper 1.21.1-128-master@d348cb8 (2024-10-21T16:23:24Z) for Minecraft 1.21.1
+[17:01:27] [ServerMain/INFO]: [PluginInitializerManager] Initializing plugins...
+[17:01:27] [Paper Plugin Remapper Thread - 1/INFO]: [ReobfServer] Remapping server...
+[17:01:34] [Paper Plugin Remapper Thread - 1/INFO]: [ReobfServer] Done remapping server in 7198ms.
+[17:01:34] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Remapping plugin 'plugins/LobbyLynx-1.0.jar'...
+[17:01:34] [Paper Plugin Remapper Thread - 2/INFO]: [PluginRemapper] Done remapping plugin 'plugins/LobbyLynx-1.0.jar' in 136ms.
+[17:01:35] [ServerMain/INFO]: [PluginInitializerManager] Initialized 1 plugin
+[17:01:35] [ServerMain/INFO]: [PluginInitializerManager] Bukkit plugins (1):
+ - LobbyLynx (1.0)
+[17:01:40] [ServerMain/WARN]: Failed to load eula.txt
+[17:01:40] [ServerMain/INFO]: You need to agree to the EULA in order to run the server. Go to eula.txt for more info.

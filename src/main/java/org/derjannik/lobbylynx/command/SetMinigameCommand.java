@@ -44,6 +44,7 @@ public class SetMinigameCommand implements CommandExecutor {
         plugin.saveConfig();
 
         sender.sendMessage("Minigame " + minigameName + " set successfully!");
+
         return true;
     }
 }
