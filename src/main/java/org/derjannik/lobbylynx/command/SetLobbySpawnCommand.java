@@ -1,48 +1,60 @@
 
-package org.derjannik.lobbyLynx.command;
+package org.derjannik.lobbylynx.command;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.derjannik.lobbylynx.LobbyLynx;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class SetLobbySpawnCommand implements CommandExecutor {
+    private final LobbyLynx plugin;
 
-    private final JavaPlugin plugin;
-
-    public SetLobbySpawnCommand(JavaPlugin plugin) {
+    public SetLobbySpawnCommand(LobbyLynx plugin) {
         this.plugin = plugin;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("This command can only be used by players.");
+            sender.sendMessage("This command can only be run by a player.");
             return true;
         }
+
+        Player player = (Player) sender;
 
         if (args.length != 5) {
-            sender.sendMessage("Usage: /lynx set lobbyspawn <slot> <item_id/name> <x> <y> <z>");
+            player.sendMessage("Usage: /setlobbyspawn <slot> <item_id/name> <x> <y> <z>");
             return true;
         }
 
-        int slot = Integer.parseInt(args[0]);
-        String itemId = args[1];
-        int x = Integer.parseInt(args[2]);
-        int y = Integer.parseInt(args[3]);
-        int z = Integer.parseInt(args[4]);
+        int slot;
+        String icon = args[1];
+        double x, y, z;
+
+        try {
+            slot = Integer.parseInt(args[0]);
+            x = Double.parseDouble(args[2]);
+            y = Double.parseDouble(args[3]);
+            z = Double.parseDouble(args[4]);
+        } catch (NumberFormatException e) {
+            player.sendMessage("Invalid number format. Please use numbers for slot, x, y, and z.");
+            return true;
+        }
 
         FileConfiguration config = plugin.getConfig();
-        config.set("lobby.spawn.slot", slot);
-        config.set("lobby.spawn.item", itemId);
-        config.set("lobby.spawn.location.x", x);
-        config.set("lobby.spawn.location.y", y);
-        config.set("lobby.spawn.location.z", z);
-        plugin.saveConfig();
+        config.set("lobby_spawn.slot", slot);
+        config.set("lobby_spawn.icon", icon);
+        config.set("lobby_spawn.world", player.getWorld().getName());
+        config.set("lobby_spawn.x", x);
+        config.set("lobby_spawn.y", y);
+        config.set("lobby_spawn.z", z);
+        config.set("lobby_spawn.yaw", player.getLocation().getYaw());
+        config.set("lobby_spawn.pitch", player.getLocation().getPitch());
 
-        sender.sendMessage("Lobby spawn set successfully!");
+        plugin.saveConfig();
+        player.sendMessage("Lobby spawn has been set successfully.");
 
         return true;
     }
