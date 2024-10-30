@@ -1,0 +1,12 @@
+teleport-message: true  # Toggle to show teleport messages
+lobby:
+  send-to-new-players-only: true  # Send welcome message to new players only
+  send-always: true  # Send welcome message to all players
+  custom-teleport-message: "You have been teleported to the Lobby."  # Custom teleport message
+  teleport-delay: 3  # Delay in seconds before teleporting
+
+# Customizable messages
+messages:
+  success: "Teleport set successfully!"
+  error: "You don’t have permission to use this feature."
+

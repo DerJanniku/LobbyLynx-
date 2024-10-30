@@ -1,24 +1,16 @@
 name: LobbyLynx
-version: 1.0
-main: org.derjannik.lobbylynx.LobbyLynx
-author: DerJannik
-api-version: 1.21
+version: '1.0-SNAPSHOT'
+main: org.derjannik.lobbyLynx.LobbyLynx
+api-version: '1.21'
 commands:
-  setminigame:
-    class: org.derjannik.lobbyLynx.command.SetMinigameCommand
-    description: Set a minigame location
-    usage: /lynx set minigame <minigame_name> <slot> <item_id/name> <x> <y> <z>
-    permission: lynx.navigator.setminigame
-    permission-message: You do not have permission to use this command.
-  setlobbyspawn:
-    class: org.derjannik.lobbyLynx.command.SetLobbySpawnCommand
-    description: Set the lobby spawn location
-    usage: /lynx set lobbyspawn <slot> <item_id/name> <x> <y> <z>
-    permission: lynx.navigator.setlobbyspawn
-    permission-message: You do not have permission to use this command.
+  lynx:
+    description: Admin GUI
+    usage: /<command> [settings] | /<command> [setlobby] | /<command> [setminigame] <name>
+    permission: lynx.admin
   lobby:
-    class: org.derjannik.lobbyLynx.command.LobbyCommand
     description: Teleport to the lobby
     usage: /lobby
-    permission: lynx.navigator.spawn
-    permission-message: You do not have permission to use this command.
+permissions:
+  lynx.admin:
+    description: Grants access to all admin functionalities, commands, and settings.
+    default: op # or 'true' if you want all players to have it by default

@@ -1,71 +1,9 @@
-item:
-  type: COMPASS
-  slot: 0
-  name: "Server Navigator"
+lobby:
+  x: 0
+  y: 64
+  z: 0
+  teleport-delay: 3
+  custom-teleport-message: "You have been teleported to the Lobby."
 
-navigator:
-  gui:
-    name: "Navigator"
-    size: 36
-    customizable_icons: false
-  
-  close_action:
-    enabled: false
-    message: "You closed the Navigator without selecting a destination."
-  
-  lobby_spawn:
-    slot: 35
-    item: NETHER_STAR
-    name: "Lobby Spawn"
-    coordinates:
-      x: 0
-      y: 64
-      z: 0
-      world: world
-      yaw: 0
-      pitch: 0
-  
-  teleport:
-    delay: 3
-    cancel_on_move: true
-    message:
-      enabled: true
-      text: "Teleporting to %destination%..."
-  
-  notifications:
-    new_players_only: true
-    always: false
-    message: "Welcome to the Lobby!"
-  
-  sounds:
-    open_gui: BLOCK_CHEST_OPEN
-    teleport: ENTITY_ENDERMAN_TELEPORT
-  
-  visual_effects:
-    enabled: true
-    type: PORTAL
-    color: PURPLE
-  
-  permissions:
-    spawn: lynx.navigator.spawn
-
-minigames:
-  example_game:
-    name: "Example Game"
-    slot: 11
-    item: DIAMOND_SWORD
-    coordinates:
-      x: 100
-      y: 64
-      z: 100
-      world: minigame_world
-      yaw: 0
-      pitch: 0
-
-messages:
-  success:
-    set_teleport: "Teleport location set successfully!"
-    lobby_spawn: "Lobby spawn point has been updated."
-  error:
-    permission: "You don't have permission to use this feature."
-    invalid_coordinates: "Invalid coordinates provided."
+minigames: {}  # Empty for now, will be populated by commands
+lobbyspawns: {}  # Empty for now, will be populated by commands
