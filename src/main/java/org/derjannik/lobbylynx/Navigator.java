@@ -29,19 +29,19 @@ public class Navigator {
         this.plugin = plugin;
         FileConfiguration config = plugin.getConfig();
 
-        // Navigator item setup
-        Material itemType = Material.valueOf(config.getString("navigator.item.type", "COMPASS"));
+        // Update how we access the navigator item configuration
+        Material itemType = Material.valueOf(config.getString("item.type", "COMPASS"));
+        int itemSlot = config.getInt("item.slot", 0);
         this.navigatorItem = new ItemStack(itemType);
         ItemMeta meta = navigatorItem.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(config.getString("navigator.name", "Server Navigator"));
+            meta.setDisplayName(config.getString("item.name", "Server Navigator"));
             navigatorItem.setItemMeta(meta);
         }
 
-        // Navigator GUI setup
         this.navigatorName = config.getString("navigator.gui.name", "Navigator");
         this.guiSize = config.getInt("navigator.gui.size", 36);
-        this.showPlayerCount = config.getBoolean("navigator.icons.show_player_count", false);
+        this.showPlayerCount = config.getBoolean("navigator.gui.customizable_icons", false);
 
         // Action settings
         this.closeActionEnabled = config.getBoolean("navigator.close_action.enabled", false);
@@ -83,8 +83,8 @@ public class Navigator {
         plugin.getServer().getPluginManager().registerEvents(new NavigatorListener(plugin, this), plugin);
     }
 
-    public void giveNavigatorItem(Player player) {
-        player.getInventory().setItem(0, navigatorItem);
+    public void giveNavigatorItem(Player player, int slot) {
+        player.getInventory().setItem(slot, navigatorItem);
     }
 
     public void openNavigator(Player player) {

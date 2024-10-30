@@ -23,7 +23,8 @@ public class NavigatorListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        navigator.giveNavigatorItem(player);
+        int navigatorSlot = plugin.getConfig().getInt("item.slot", 0);
+        navigator.giveNavigatorItem(player, navigatorSlot);
     }
 
     @EventHandler
