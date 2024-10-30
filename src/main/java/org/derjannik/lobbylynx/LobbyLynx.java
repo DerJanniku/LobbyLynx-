@@ -23,14 +23,21 @@ public class LobbyLynx extends JavaPlugin {
 
         // Register event listener for Navigator interactions
         getServer().getPluginManager().registerEvents(new NavigatorListener(this, navigator), this);
+
+        getLogger().info("LobbyLynx has been enabled!");
     }
 
     @Override
     public void onDisable() {
-        // Any required cleanup logic goes here
+        getLogger().info("LobbyLynx has been disabled!");
     }
 
     public Navigator getNavigator() {
         return navigator;
+    }
+
+    public void reloadNavigator() {
+        reloadConfig();
+        this.navigator = new Navigator(this);
     }
 }

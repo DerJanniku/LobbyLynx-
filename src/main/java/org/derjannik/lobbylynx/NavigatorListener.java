@@ -24,12 +24,15 @@ public class NavigatorListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         int navigatorSlot = plugin.getConfig().getInt("item.slot", 0);
-        navigator.giveNavigatorItem(player, navigatorSlot);
+        if (!player.getInventory().contains(navigator.getNavigatorItem())) {
+            navigator.giveNavigatorItem(player, navigatorSlot);
+        }
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        event.getPlayer().getInventory().clear();
+        Player player = event.getPlayer();
+        player.getInventory().remove(navigator.getNavigatorItem());
     }
 
     @EventHandler
@@ -47,11 +50,14 @@ public class NavigatorListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getView().getTitle().equals(navigator.getNavigatorName())) {
             event.setCancelled(true);
-            if (event.getCurrentItem() != null) {
+            if (event.getCurrentItem() != null && event.getCurrentItem().hasItemMeta()) {
                 Player player = (Player) event.getWhoClicked();
                 String displayName = event.getCurrentItem().getItemMeta().getDisplayName();
                 if (displayName.equals("Lobby Spawn")) {
                     navigator.teleportToLobbySpawn(player);
+                } else {
+                    // Handle other minigame options here
+                    navigator.teleportToMinigame(player, displayName);
                 }
                 player.closeInventory();
             }
@@ -61,7 +67,7 @@ public class NavigatorListener implements Listener {
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         if (event.getView().getTitle().equals(navigator.getNavigatorName()) && navigator.isCloseActionEnabled()) {
-            event.getPlayer().sendMessage("You closed the Navigator.");
+            event.getPlayer().sendMessage(plugin.getConfig().getString("navigator.close_action.message", "You closed the Navigator."));
         }
     }
 }
