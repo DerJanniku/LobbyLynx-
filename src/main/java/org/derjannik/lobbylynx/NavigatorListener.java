@@ -1,4 +1,3 @@
-
 package org.derjannik.lobbylynx;
 
 import org.bukkit.entity.Player;
@@ -14,46 +13,44 @@ import org.bukkit.inventory.ItemStack;
 
 public class NavigatorListener implements Listener {
     private final LobbyLynx plugin;
+    private final Navigator navigator;
 
-    public NavigatorListener(LobbyLynx plugin) {
+    public NavigatorListener(LobbyLynx plugin, Navigator navigator) {
         this.plugin = plugin;
+        this.navigator = navigator;
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        plugin.getNavigator().giveNavigatorItem(player);
+        navigator.giveNavigatorItem(player);
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        Player player = event.getPlayer();
-        player.getInventory().clear();
+        event.getPlayer().getInventory().clear();
     }
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            Player player = event.getPlayer();
             ItemStack item = event.getItem();
-            if (plugin.getNavigator().isNavigatorItem(item)) {
+            if (navigator.isNavigatorItem(item)) {
                 event.setCancelled(true);
-                plugin.getNavigator().openNavigator(player);
+                navigator.openNavigator(event.getPlayer());
             }
         }
     }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getView().getTitle().equals(plugin.getNavigator().getNavigatorName())) {
+        if (event.getView().getTitle().equals(navigator.getNavigatorName())) {
             event.setCancelled(true);
             if (event.getCurrentItem() != null) {
                 Player player = (Player) event.getWhoClicked();
-                String itemName = event.getCurrentItem().getItemMeta().getDisplayName();
-                if (itemName.equals("Lobby Spawn")) {
-                    plugin.getNavigator().teleportToLobbySpawn(player);
-                } else {
-                    plugin.getNavigator().teleportToMinigame(player, itemName);
+                String displayName = event.getCurrentItem().getItemMeta().getDisplayName();
+                if (displayName.equals("Lobby Spawn")) {
+                    navigator.teleportToLobbySpawn(player);
                 }
                 player.closeInventory();
             }
@@ -62,11 +59,8 @@ public class NavigatorListener implements Listener {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        if (event.getView().getTitle().equals(plugin.getNavigator().getNavigatorName())) {
-            if (plugin.getNavigator().isCloseActionEnabled()) {
-                Player player = (Player) event.getPlayer();
-                player.sendMessage("You closed the Navigator GUI");
-            }
+        if (event.getView().getTitle().equals(navigator.getNavigatorName()) && navigator.isCloseActionEnabled()) {
+            event.getPlayer().sendMessage("You closed the Navigator.");
         }
     }
 }

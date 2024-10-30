@@ -20,12 +20,11 @@ navigator:
     always: true
   teleport_delay: 3
   teleport_message: true
-
   permissions:
     spawn: lynx.navigator.spawn
   sounds:
-    open_gui: ENTITY_PLAYER_LEVELUP
-    teleport: ENTITY_ENDERMAN_TELEPORT
+    open_gui: entity.player.levelup
+    teleport: entity.enderman.teleport
   visual_effects:
     enabled: true
     type: SMOKE
