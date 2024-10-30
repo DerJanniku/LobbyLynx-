@@ -7,10 +7,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
 
 public class Navigator {
     private final LobbyLynx plugin;
@@ -22,8 +20,8 @@ public class Navigator {
     private final boolean teleportMessageEnabled;
     private final int lobbySpawnSlot;
     private final Location lobbySpawnLocation;
-    private final String teleportSound;
-    private final String openGuiSound;
+    private final Sound teleportSound;
+    private final Sound openGuiSound;
     private final boolean visualEffectsEnabled;
     private final Particle visualEffectType;
 
@@ -33,7 +31,6 @@ public class Navigator {
 
         // Navigator item setup
         Material itemType = Material.valueOf(config.getString("navigator.item.type", "COMPASS"));
-        int itemSlot = config.getInt("navigator.item.slot", 0);
         this.navigatorItem = new ItemStack(itemType);
         ItemMeta meta = navigatorItem.getItemMeta();
         if (meta != null) {
@@ -52,14 +49,31 @@ public class Navigator {
 
         // Lobby spawn setup
         ConfigurationSection lobbySpawn = config.getConfigurationSection("navigator.lobby_spawn");
-        this.lobbySpawnSlot = lobbySpawn.getInt("slot", guiSize - 1);
-        String worldName = lobbySpawn.getString("world", "world");
-        double[] coords = lobbySpawn.getDoubleList("coordinates").stream().mapToDouble(Double::doubleValue).toArray();
-        this.lobbySpawnLocation = new Location(Bukkit.getWorld(worldName), coords[0], coords[1], coords[2]);
+        if (lobbySpawn != null) {
+            this.lobbySpawnSlot = lobbySpawn.getInt("slot", guiSize - 1);
+            String worldName = lobbySpawn.getString("world", "world");
+            double[] coords = lobbySpawn.getDoubleList("coordinates").stream().mapToDouble(Double::doubleValue).toArray();
+            this.lobbySpawnLocation = new Location(Bukkit.getWorld(worldName), coords[0], coords[1], coords[2]);
+        } else {
+            this.lobbySpawnSlot = guiSize - 1;
+            this.lobbySpawnLocation = new Location(Bukkit.getWorlds().get(0), 0, 64, 0);
+        }
+
+
 
         // Sounds
-        this.teleportSound = config.getString("navigator.sounds.teleport", "entity.enderman.teleport");
-        this.openGuiSound = config.getString("navigator.sounds.open_gui", "entity.player.levelup");
+        Sound tempTeleportSound;
+        Sound tempOpenGuiSound;
+        try {
+            tempTeleportSound = Sound.valueOf(config.getString("navigator.sounds.teleport", "ENTITY_ENDERMAN_TELEPORT"));
+            tempOpenGuiSound = Sound.valueOf(config.getString("navigator.sounds.open_gui", "ENTITY_PLAYER_LEVELUP"));
+        } catch (IllegalArgumentException e) {
+            plugin.getLogger().warning("Invalid sound name in config. Using default sounds.");
+            tempTeleportSound = Sound.ENTITY_ENDERMAN_TELEPORT;
+            tempOpenGuiSound = Sound.ENTITY_PLAYER_LEVELUP;
+        }
+        this.teleportSound = tempTeleportSound;
+        this.openGuiSound = tempOpenGuiSound;
 
         // Visual Effects
         this.visualEffectsEnabled = config.getBoolean("navigator.visual_effects.enabled", false);
@@ -78,9 +92,7 @@ public class Navigator {
         populateGUI(gui);
 
         player.openInventory(gui);
-        if (openGuiSound != null) {
-            player.playSound(player.getLocation(), Sound.valueOf(openGuiSound), 1.0f, 1.0f);
-        }
+        player.playSound(player.getLocation(), openGuiSound, 1.0f, 1.0f);
     }
 
     private void populateGUI(Inventory gui) {
@@ -100,7 +112,9 @@ public class Navigator {
                     if (meta != null) {
                         meta.setDisplayName(name);
                         if (showPlayerCount) {
-                            meta.setLore(Arrays.asList("Players: " + Bukkit.getWorld(key).getPlayers().size()));
+                            World world = Bukkit.getWorld(key);
+                            int playerCount = world != null ? world.getPlayers().size() : 0;
+                            meta.setLore(Collections.singletonList("Players: " + playerCount));
                         }
                         item.setItemMeta(meta);
                     }
@@ -120,8 +134,13 @@ public class Navigator {
     }
 
     public boolean isNavigatorItem(ItemStack item) {
-        return item != null && item.getType() == navigatorItem.getType() && item.hasItemMeta() &&
-                item.getItemMeta().getDisplayName().equals(navigatorItem.getItemMeta().getDisplayName());
+        if (item == null || !item.hasItemMeta() || item.getType() != navigatorItem.getType()) {
+            return false;
+        }
+        ItemMeta itemMeta = item.getItemMeta();
+        ItemMeta navMeta = navigatorItem.getItemMeta();
+        return itemMeta != null && navMeta != null &&
+                itemMeta.getDisplayName().equals(navMeta.getDisplayName());
     }
 
     public void teleportToLobbySpawn(Player player) {
@@ -129,11 +148,8 @@ public class Navigator {
             player.sendMessage(ChatColor.GREEN + "Teleporting to Lobby Spawn...");
         }
         player.teleport(lobbySpawnLocation);
+        player.playSound(player.getLocation(), teleportSound, 1.0f, 1.0f);
 
-        // Play sound and effect
-        if (teleportSound != null) {
-            player.playSound(player.getLocation(), Sound.valueOf(teleportSound), 1.0f, 1.0f);
-        }
         if (visualEffectsEnabled) {
             player.getWorld().spawnParticle(visualEffectType, player.getLocation(), 20, 0.5, 0.5, 0.5, 0.1);
         }
