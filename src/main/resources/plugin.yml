@@ -4,13 +4,26 @@ main: org.derjannik.lobbyLynx.LobbyLynx
 api-version: '1.21'
 commands:
   lynx:
-    description: Admin GUI
-    usage: /<command> [settings] | /<command> [setlobby] | /<command> [setminigame] <name>
-    permission: lynx.admin
-  lobby:
-    description: Teleport to the lobby
-    usage: /lobby
+    description: Main command for LobbyLynx
+    usage: |
+      §6=== LobbyLynx Commands ===
+      §e/lynx settings §f- Open settings GUI
+      §e/lynx set minigame <name> <slot> <item> <x> <y> <z>
+      §e/lynx set lobbyspawn <slot> <item> <x> <y> <z>
+      §e/lynx reload §f- Reload configuration
+      §e/lynx help §f- Show detailed help
+    permission: lynx.use
+    aliases: [lobbylynx]
+
 permissions:
+  lynx.use:
+    description: Allows use of basic LobbyLynx commands
+    default: true
   lynx.admin:
-    description: Grants access to all admin functionalities, commands, and settings.
-    default: op # or 'true' if you want all players to have it by default
+    description: Grants access to all admin functionalities
+    default: op
+    children:
+      lynx.use: true
+      lynx.set.minigame: true
+      lynx.set.lobbyspawn: true
+      lynx.reload: true

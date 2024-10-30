@@ -11,6 +11,9 @@ public class LobbyLynx extends JavaPlugin {
         // Load the configuration
         configManager = new ConfigManager(this);
 
+        LynxCommand lynxCommand = new LynxCommand(this);
+        getCommand("lynx").setExecutor(lynxCommand);
+        getCommand("lynx").setTabCompleter(lynxCommand);
         // Register event listeners
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, configManager), this);
         getServer().getPluginManager().registerEvents(new PlayerQuitListener(), this);
@@ -32,5 +35,8 @@ public class LobbyLynx extends JavaPlugin {
 
     public ConfigManager getConfigManager() {
         return configManager;
+    }
+
+    public void reloadNavigator() {
     }
 }

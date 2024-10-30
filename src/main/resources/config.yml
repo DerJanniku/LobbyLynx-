@@ -1,9 +1,20 @@
-lobby:
-  x: 0
-  y: 64
-  z: 0
-  teleport-delay: 3
-  custom-teleport-message: "You have been teleported to the Lobby."
+navigator:
+  gui:
+    title: "Navigator"
+    size: 36
+  teleport_message:
+    enabled: true
+    text: "Teleporting to %minigame%..."
+  lobby_spawn:
+    slot: 0
+    item: "NETHER_STAR"
+    x: 0
+    y: 90
+    z: 0
+    world: "world"
+  notifications:
+    new_players_only: true
+    always: true
+    welcome_message: "Welcome to the Lobby!"
 
-minigames: {}  # Empty for now, will be populated by commands
-lobbyspawns: {}  # Empty for now, will be populated by commands
+minigames: {}  # Will be populated by commands
