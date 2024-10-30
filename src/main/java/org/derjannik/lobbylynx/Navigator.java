@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-
 import java.util.Collections;
 
 public class Navigator {
@@ -29,74 +28,168 @@ public class Navigator {
         this.plugin = plugin;
         FileConfiguration config = plugin.getConfig();
 
-        // Navigator item setup
-        Material itemType = Material.valueOf(config.getString("item.type", "COMPASS"));
-        int itemSlot = config.getInt("item.slot", 0);
-        this.navigatorItem = new ItemStack(itemType);
-        ItemMeta meta = navigatorItem.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(config.getString("item.name", "Server Navigator"));
-            navigatorItem.setItemMeta(meta);
-        }
+        // Initialize navigator item
+        this.navigatorItem = createNavigatorItem(config);
 
+        // Initialize basic settings
         this.navigatorName = config.getString("navigator.gui.name", "Navigator");
-        this.guiSize = config.getInt("navigator.gui.size", 36);
+        this.guiSize = validateGuiSize(config.getInt("navigator.gui.size", 36));
         this.showPlayerCount = config.getBoolean("navigator.gui.customizable_icons", false);
-
-        // Action settings
         this.closeActionEnabled = config.getBoolean("navigator.close_action.enabled", false);
         this.teleportMessageEnabled = config.getBoolean("navigator.teleport.message.enabled", true);
 
-        // Lobby spawn setup
+        // Initialize lobby spawn
+        LobbySpawnData spawnData = initializeLobbySpawn(config);
+        this.lobbySpawnSlot = spawnData.slot;
+        this.lobbySpawnLocation = spawnData.location;
+
+        // Initialize sounds
+        SoundData soundData = initializeSounds(config);
+        this.teleportSound = soundData.teleportSound;
+        this.openGuiSound = soundData.openGuiSound;
+
+        // Initialize visual effects
+        VisualEffectData effectData = initializeVisualEffects(config);
+        this.visualEffectsEnabled = effectData.enabled;
+        this.visualEffectType = effectData.effectType;
+    }
+
+    private ItemStack createNavigatorItem(FileConfiguration config) {
+        Material itemType;
+        try {
+            itemType = Material.valueOf(config.getString("navigator.item.type", "COMPASS"));
+        } catch (IllegalArgumentException e) {
+            plugin.getLogger().warning("Invalid item type in config. Using default COMPASS.");
+            itemType = Material.COMPASS;
+        }
+
+        ItemStack item = new ItemStack(itemType);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&',
+                    config.getString("navigator.item.name", "§6Server Navigator")));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private int validateGuiSize(int size) {
+        // Ensure GUI size is a multiple of 9 and between 9 and 54
+        if (size % 9 != 0 || size < 9 || size > 54) {
+            plugin.getLogger().warning("Invalid GUI size in config. Using default size 36.");
+            return 36;
+        }
+        return size;
+    }
+
+    public ItemStack getNavigatorItem() {
+        return navigatorItem.clone();
+    }
+
+    private static class LobbySpawnData {
+        final int slot;
+        final Location location;
+
+        LobbySpawnData(int slot, Location location) {
+            this.slot = slot;
+            this.location = location;
+        }
+    }
+
+    private LobbySpawnData initializeLobbySpawn(FileConfiguration config) {
         ConfigurationSection lobbySpawn = config.getConfigurationSection("navigator.lobby_spawn");
+        int slot = guiSize - 1;
+        Location location;
+
         if (lobbySpawn != null) {
-            this.lobbySpawnSlot = lobbySpawn.getInt("slot", guiSize - 1);
-            String worldName = lobbySpawn.getString("coordinates.world", "world");
-            double x = lobbySpawn.getDouble("coordinates.x", 0);
-            double y = lobbySpawn.getDouble("coordinates.y", 64);
-            double z = lobbySpawn.getDouble("coordinates.z", 0);
-            float yaw = (float) lobbySpawn.getDouble("coordinates.yaw", 0);
-            float pitch = (float) lobbySpawn.getDouble("coordinates.pitch", 0);
+            slot = lobbySpawn.getInt("slot", guiSize - 1);
+            String worldName = lobbySpawn.getString("world", "world");
             World world = Bukkit.getWorld(worldName);
+
             if (world != null) {
-                this.lobbySpawnLocation = new Location(world, x, y, z, yaw, pitch);
+                location = new Location(
+                        world,
+                        lobbySpawn.getDouble("coordinates.x", 0),
+                        lobbySpawn.getDouble("coordinates.y", 64),
+                        lobbySpawn.getDouble("coordinates.z", 0),
+                        (float) lobbySpawn.getDouble("coordinates.yaw", 0),
+                        (float) lobbySpawn.getDouble("coordinates.pitch", 0)
+                );
             } else {
-                plugin.getLogger().warning("Specified world '" + worldName + "' not found. Using default world.");
-                this.lobbySpawnLocation = Bukkit.getWorlds().get(0).getSpawnLocation();
+                plugin.getLogger().warning("World '" + worldName + "' not found. Using default world spawn.");
+                location = Bukkit.getWorlds().get(0).getSpawnLocation();
             }
         } else {
-            this.lobbySpawnSlot = guiSize - 1;
-            this.lobbySpawnLocation = Bukkit.getWorlds().get(0).getSpawnLocation();
+            plugin.getLogger().warning("No lobby spawn configuration found. Using default world spawn.");
+            location = Bukkit.getWorlds().get(0).getSpawnLocation();
         }
 
-        // Sounds
-        String teleportSoundName = config.getString("navigator.sounds.teleport", "ENTITY_ENDERMAN_TELEPORT");
-        String openGuiSoundName = config.getString("navigator.sounds.open_gui", "BLOCK_CHEST_OPEN");
+        return new LobbySpawnData(slot, location);
+    }
+
+    private static class SoundData {
+        final Sound teleportSound;
+        final Sound openGuiSound;
+
+        SoundData(Sound teleportSound, Sound openGuiSound) {
+            this.teleportSound = teleportSound;
+            this.openGuiSound = openGuiSound;
+        }
+    }
+
+    private SoundData initializeSounds(FileConfiguration config) {
+        Sound teleport, openGui;
         try {
-            this.teleportSound = Sound.valueOf(teleportSoundName);
-            this.openGuiSound = Sound.valueOf(openGuiSoundName);
+            teleport = Sound.valueOf(config.getString("navigator.sounds.teleport", "ENTITY_ENDERMAN_TELEPORT"));
         } catch (IllegalArgumentException e) {
-            plugin.getLogger().warning("Invalid sound name in config. Using default sounds.");
-            this.teleportSound = Sound.ENTITY_ENDERMAN_TELEPORT;
-            this.openGuiSound = Sound.BLOCK_CHEST_OPEN;
+            plugin.getLogger().warning("Invalid teleport sound in config. Using default sound.");
+            teleport = Sound.ENTITY_ENDERMAN_TELEPORT;
         }
 
-        // Visual Effects
-        this.visualEffectsEnabled = config.getBoolean("navigator.visual_effects.enabled", false);
-        String effectTypeName = config.getString("navigator.visual_effects.type", "PORTAL");
         try {
-            this.visualEffectType = Particle.valueOf(effectTypeName);
+            openGui = Sound.valueOf(config.getString("navigator.sounds.open_gui", "BLOCK_CHEST_OPEN"));
+        } catch (IllegalArgumentException e) {
+            plugin.getLogger().warning("Invalid GUI open sound in config. Using default sound.");
+            openGui = Sound.BLOCK_CHEST_OPEN;
+        }
+
+        return new SoundData(teleport, openGui);
+    }
+
+    private static class VisualEffectData {
+        final boolean enabled;
+        final Particle effectType;
+
+        VisualEffectData(boolean enabled, Particle effectType) {
+            this.enabled = enabled;
+            this.effectType = effectType;
+        }
+    }
+
+    private VisualEffectData initializeVisualEffects(FileConfiguration config) {
+        boolean enabled = config.getBoolean("navigator.visual_effects.enabled", false);
+        Particle effectType;
+        try {
+            effectType = Particle.valueOf(config.getString("navigator.visual_effects.type", "PORTAL"));
         } catch (IllegalArgumentException e) {
             plugin.getLogger().warning("Invalid particle effect type in config. Using default PORTAL effect.");
-            this.visualEffectType = Particle.PORTAL;
+            effectType = Particle.PORTAL;
         }
+        return new VisualEffectData(enabled, effectType);
     }
 
     public void giveNavigatorItem(Player player) {
-        player.getInventory().setItem(plugin.getConfig().getInt("item.slot", 0), navigatorItem);
+        if (player != null) {
+            player.getInventory().setItem(
+                    plugin.getConfig().getInt("navigator.item.slot", 0),
+                    navigatorItem.clone()
+            );
+        }
     }
 
     public void openNavigator(Player player) {
+        if (player == null) return;
+
         Inventory gui = Bukkit.createInventory(null, guiSize, navigatorName);
         populateGUI(gui);
 
@@ -105,18 +198,24 @@ public class Navigator {
     }
 
     private void populateGUI(Inventory gui) {
-        FileConfiguration config = plugin.getConfig();
-        ConfigurationSection iconsSection = config.getConfigurationSection("minigames");
+        if ( gui == null) return;
 
+        ConfigurationSection iconsSection = plugin.getConfig().getConfigurationSection("minigames");
         if (iconsSection != null) {
             for (String key : iconsSection.getKeys(false)) {
                 ConfigurationSection icon = iconsSection.getConfigurationSection(key);
                 if (icon != null) {
                     String name = icon.getString("name");
                     int slot = icon.getInt("slot");
-                    Material material = Material.valueOf(icon.getString("item", "COMPASS"));
-                    ItemStack item = new ItemStack(material);
+                    Material material;
+                    try {
+                        material = Material.valueOf(icon.getString("item", "COMPASS"));
+                    } catch (IllegalArgumentException e) {
+                        plugin.getLogger().warning("Invalid item type for '" + name + "'. Using default COMPASS.");
+                        material = Material.COMPASS;
+                    }
 
+                    ItemStack item = new ItemStack(material);
                     ItemMeta meta = item.getItemMeta();
                     if (meta != null) {
                         meta.setDisplayName(name);
@@ -153,6 +252,8 @@ public class Navigator {
     }
 
     public void teleportToLobbySpawn(Player player) {
+        if (player == null) return;
+
         if (teleportMessageEnabled) {
             player.sendMessage(ChatColor.GREEN + "Teleporting to Lobby Spawn...");
         }

@@ -23,9 +23,8 @@ public class NavigatorListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        int navigatorSlot = plugin.getConfig().getInt("item.slot", 0);
         if (!player.getInventory().contains(navigator.getNavigatorItem())) {
-            navigator.giveNavigatorItem(player, navigatorSlot);
+            navigator.giveNavigatorItem(player);
         }
     }
 
@@ -55,9 +54,6 @@ public class NavigatorListener implements Listener {
                 String displayName = event.getCurrentItem().getItemMeta().getDisplayName();
                 if (displayName.equals("Lobby Spawn")) {
                     navigator.teleportToLobbySpawn(player);
-                } else {
-                    // Handle other minigame options here
-                    navigator.teleportToMinigame(player, displayName);
                 }
                 player.closeInventory();
             }
