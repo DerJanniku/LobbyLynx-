@@ -1,5 +1,3 @@
-
-
 package org.derjannik.lobbyLynx;
 
 import org.bukkit.plugin.java.JavaPlugin;
@@ -38,6 +36,7 @@ public class LobbyLynx extends JavaPlugin {
         blockBreakingAllowed = configManager.getGameRule("blockBreaking");
         blockPlacementAllowed = configManager.getGameRule("blockPlacement");
         elytraAllowed = !configManager.getGameRule("disableElytra");
+        tntExplosionsAllowed = configManager.getGameRule("tnt");
 
         // Register commands
         LynxCommand lynxCommand = new LynxCommand(this, configManager);
@@ -51,6 +50,24 @@ public class LobbyLynx extends JavaPlugin {
         getCommand("spawn").setExecutor(commonCommands);
 
         // Register event listeners
+        registerEventListeners();
+
+        // Initialize and register TeleportSigns
+        teleportSigns = new TeleportSigns(this, configManager);
+        getServer().getPluginManager().registerEvents(teleportSigns, this);
+        teleportSigns.testTeleportSigns();
+
+        // Initialize BungeeCord/Velocity integration
+        setupBungeeIntegration();
+
+        // Apply settings
+        applyLobbySettings();
+        configManager.setDefaultGameRules();
+
+        saveDefaultConfig();
+    }
+
+    private void registerEventListeners() {
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, configManager, customScoreboard, customTablist), this);
         getServer().getPluginManager().registerEvents(new PlayerQuitListener(this, configManager), this);
         getServer().getPluginManager().registerEvents(new SettingsGUI(this, configManager), this);
@@ -58,32 +75,18 @@ public class LobbyLynx extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new NavigatorGUI(this, configManager), this);
         getServer().getPluginManager().registerEvents(new CustomRuleListener(this), this);
         getServer().getPluginManager().registerEvents(new TNTExplosionListener(this), this);
+    }
 
-        // Initialize and register TeleportSigns
-        teleportSigns = new TeleportSigns(this, configManager);
-        getServer().getPluginManager().registerEvents(teleportSigns, this);
-
-        // Test TeleportSigns functionality
-        teleportSigns.testTeleportSigns();
-
-        // Apply lobby settings and game rules
-        applyLobbySettings();
-        configManager.setDefaultGameRules();
-
-        // Initialize TNT explosions setting
-        tntExplosionsAllowed = configManager.getGameRule("tnt");
-
+    private void setupBungeeIntegration() {
         // Register BungeeCord plugin messaging channel
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
-
-        // Start server info updater
-        startServerInfoUpdater();
 
         // Initialize and register BungeeSignManager
         bungeeSignManager = new BungeeSignManager(this);
         getServer().getPluginManager().registerEvents(bungeeSignManager, this);
 
-        saveDefaultConfig();
+        // Start server info updater
+        startServerInfoUpdater();
     }
 
     public BungeeSignManager getBungeeSignManager() {
@@ -92,8 +95,6 @@ public class LobbyLynx extends JavaPlugin {
 
     private void startServerInfoUpdater() {
         getServer().getScheduler().runTaskTimerAsynchronously(this, () -> {
-            // Here you would implement the logic to fetch server info from Velocity
-            // For demonstration purposes, we'll use placeholder data
             for (String serverName : configManager.getConfig().getStringList("velocity-servers")) {
                 updateServerInfo(serverName);
             }
@@ -128,6 +129,7 @@ public class LobbyLynx extends JavaPlugin {
         applyLobbySettings();
         applyGameRules();
     }
+
     public void setTNTExplosionsAllowed(boolean allowed) {
         this.tntExplosionsAllowed = allowed;
     }
@@ -135,6 +137,7 @@ public class LobbyLynx extends JavaPlugin {
     public boolean areTNTExplosionsAllowed() {
         return this.tntExplosionsAllowed;
     }
+
     private void applyLobbySettings() {
         boolean flightEnabled = configManager.isFlightEnabled();
         boolean pvpEnabled = configManager.isPvPEnabled();
@@ -148,8 +151,6 @@ public class LobbyLynx extends JavaPlugin {
 
         // Apply time setting
         getServer().getWorlds().forEach(world -> world.setTime(lobbyTime));
-
-        // Double jump will be handled in a separate listener
     }
 
     public void applyGameRules() {

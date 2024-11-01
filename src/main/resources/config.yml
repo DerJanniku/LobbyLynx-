@@ -79,6 +79,8 @@ game_rules:
   alwaysDay: true
   noWeather: true
 
+# [Previous navigator, gamerule, settings, lobby settings, and game rules sections remain unchanged]
+
 # Plugin settings
 plugin:
   debug_mode: false
@@ -98,36 +100,47 @@ minigames:
 messages:
   join: "&aWelcome to the server, %player%!"
   quit: "&e%player% has left the server."
+  sign:
+    created: "&aServer sign created successfully!"
+    removed: "&cServer sign removed!"
+    no-permission: "&cYou don't have permission to use this sign!"
+    connecting: "&aConnecting to %server%..."
+    error: "&cCouldn't connect to %server%!"
 
-# Velocity servers
-velocity-servers:
-  - "lobby"
-  - "survival"
-  - "creative"
-  - "minigames"
+# Server Signs Configuration
+server-signs:
+  update-interval: 20 # Ticks between updates (20 ticks = 1 second)
+  format:
+    - "&8[&bServer&8]"
+    - "%server%"
+    - "%players%/%maxplayers%"
+    - "&aClick to join!"
+  servers:
+    lobby:
+      display-name: "&aLobby"
+    survival:
+      display-name: "&eSurvival"
+      signs:
+        - world: "world"
+          x: 0
+          y: 64
+          z: 0
+    creative:
+      display-name: "&bCreative"
+      signs:
+        - world: "world"
+          x: 10
+          y: 64
+          z: 10
+    minigames:
+      display-name: "&6Minigames"
+      signs:
+        - world: "world"
+          x: 20
+          y: 64
+          z: 20
 
-# TeleportSigns Configuration
-teleport-signs:
-  sign1:
-    world: "world"
-    x: 0
-    y: 64
-    z: 0
-    destination: "survival"
-  sign2:
-    world: "world"
-    x: 10
-    y: 64
-    z: 10
-    destination: "creative"
-  sign3:
-    world: "world"
-    x: 20
-    y: 64
-    z: 20
-    destination: "minigames"
-
-# Destinations for TeleportSigns (for local teleports)
+# Destinations for local teleports
 destinations:
   lobby_spawn:
     world: "world"
