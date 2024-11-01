@@ -32,8 +32,16 @@ public class LobbyLynx extends JavaPlugin {
         configManager.loadConfig();
 
         //New Friend Manager
-        friendManager = new FriendManager(this);
+        this.friendManager = new FriendManager(this);
         getCommand("friend").setExecutor(new org.derjannik.lobbyLynx.command.FriendCommand(this, friendManager));
+
+        friendManager = new FriendManager(this);
+        getServer().getPluginManager().registerEvents(friendGUI, this);
+        // Register FriendCommand
+        org.derjannik.lobbyLynx.command.FriendCommand friendCommand = new org.derjannik.lobbyLynx.command.FriendCommand(this, friendManager);
+        getCommand("friend").setExecutor(friendCommand);
+        getCommand("friend").setTabCompleter(friendCommand);
+
         // Initialize CustomScoreboard and CustomTablist
         customScoreboard = new CustomScoreboard(this, configManager);
         customTablist = new CustomTablist(this, configManager);
@@ -246,5 +254,12 @@ class TNTExplosionListener implements Listener {
         if (event.getEntity() instanceof TNTPrimed && !plugin.areTNTExplosionsAllowed()) {
             event.setCancelled(true);
         }
+    }
+    public FriendManager getFriendManager() {
+        return friendManager;
+    }
+
+    public FriendGUI getFriendGUI() {
+        return friendGUI;
     }
 }

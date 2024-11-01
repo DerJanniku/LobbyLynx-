@@ -23,10 +23,9 @@ commands:
     aliases: [hub, spawn]
     permission: lynx.use
   friend:
-    description: Friend system commands
-    usage: /<command> <list|add|remove|requests|accept> [player]
-    permission: lynx.friend.use
-    permission-message: You don't have permission to use this command.
+    description: Manage your friends
+    usage: /friend <list|add|remove|requests|accept|deny> [player]
+    aliases: [f]
 
 
 

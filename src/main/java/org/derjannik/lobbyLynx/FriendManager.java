@@ -171,6 +171,26 @@ public class FriendManager {
         }
     }
 
-    public void removeFriend(String name, String target) {
+    public void removeFriend(String player1, String player2) {
+        List<String> player1Friends = getFriends(player1);
+        List<String> player2Friends = getFriends(player2);
+
+        player1Friends.remove(player2);
+        player2Friends.remove(player1);
+
+        friendsConfig.set("players." + player1 + ".friends", player1Friends);
+        friendsConfig.set("players." + player2 + ".friends", player2Friends);
+        saveFriendsConfig();
+
+        // Notify both players
+        Player p1 = Bukkit.getPlayer(player1);
+        Player p2 = Bukkit.getPlayer(player2);
+
+        if (p1 != null) {
+            p1.sendMessage(ChatColor.YELLOW + "You are no longer friends with " + player2 + ".");
+        }
+        if (p2 != null) {
+            p2.sendMessage(ChatColor.YELLOW + player1 + " has removed you from their friend list.");
+        }
     }
 }
