@@ -76,40 +76,30 @@ public class FriendManager {
         }
     }
 
-    private FriendStatistics loadStatistics(String player) {
+    public FriendStatistics loadStatistics(String player) {
         FileConfiguration statsConfig = plugin.getStatsConfig();
         String path = "statistics." + player;
         FriendStatistics stats = new FriendStatistics();
 
         if (statsConfig.contains(path)) {
-            stats.friendSince = statsConfig.getLong(path + ".friendSince");
-            stats.messagesSent = statsConfig.getInt(path + ".messagesSent");
-            stats.gamesPlayed = statsConfig.getInt(path + ".gamesPlayed");
-            stats.lastInteraction = statsConfig.getLong(path + ".lastInteraction");
-            stats.status = statsConfig.getString(path + ".status", "Hey there! I'm using LobbyLynx!");
-            stats.isOnline = statsConfig.getBoolean(path + ".isOnline", false);
-            // Initialize friendshipLevels as a Map
-            stats.friendshipLevels = new HashMap<>();
+            stats.setFriendSince(statsConfig.getLong(path + ".friendSince"));
+            stats.setMessagesSent(statsConfig.getInt(path + ".messagesSent"));
+            stats.setGamesPlayed(statsConfig.getInt(path + ".gamesPlayed"));
+            stats.setLastInteraction(statsConfig.getLong(path + ".lastInteraction"));
+            stats.setStatus(statsConfig.getString(path + ".status", "Hey there! I'm using LobbyLynx!"));
+            stats.setOnline(statsConfig.getBoolean(path + ".isOnline", false));
+
             if (statsConfig.contains(path + ".friendshipLevels")) {
                 List<String> levels = statsConfig.getStringList(path + ".friendshipLevels");
                 for (String level : levels) {
                     String[] parts = level.split(":");
                     if (parts.length == 2) {
-                        stats.friendshipLevels.put(parts[0], Integer.parseInt(parts[1]));
+                        stats.addFriend(parts[0], System.currentTimeMillis(), Integer.parseInt(parts[1]));
                     }
                 }
             }
-        } else {
-            // Default values
-            stats.friendSince = System.currentTimeMillis();
-            stats.messagesSent = 0;
-            stats.gamesPlayed = 0;
-            stats.lastInteraction = System.currentTimeMillis();
-            stats.status = "Hey there! I'm using LobbyLynx!";
-            stats.isOnline = false;
-            stats.friendshipLevels = new HashMap<>(); // Initialize as an empty map
         }
-        return stats;
+        return stats; // Return the populated stats object
     }
 
     private void connectToDatabase() {
@@ -170,16 +160,16 @@ public class FriendManager {
         FileConfiguration statsConfig = plugin.getStatsConfig();
         String path = "statistics." + key;
 
-        statsConfig.set(path + ".friendSince", value.friendSince);
-        statsConfig.set(path + ".messagesSent", value.messagesSent);
-        statsConfig.set(path + ".gamesPlayed", value.gamesPlayed);
-        statsConfig.set(path + ".lastInteraction", value.lastInteraction);
-        statsConfig.set(path + ".status", value.status);
-        statsConfig.set(path + ".isOnline", value.isOnline);
+        statsConfig.set(path + ".friendSince", value.getFriendSince());
+        statsConfig.set(path + ".messagesSent", value.getMessagesSent());
+        statsConfig.set(path + ".gamesPlayed", value.getGamesPlayed());
+        statsConfig.set(path + ".lastInteraction", value.getLastInteraction());
+        statsConfig.set(path + ".status", value.getStatus());
+        statsConfig.set(path + ".isOnline", value.isOnline());
 
         // Save friendship levels as a list of strings
         List<String> levels = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : value.friendshipLevels.entrySet()) {
+        for (Map.Entry<String, Integer> entry : value.getFriendshipLevels().entrySet()) {
             levels.add(entry.getKey() + ":" + entry.getValue());
         }
         statsConfig.set(path + ".friendshipLevels", levels);
@@ -240,9 +230,20 @@ public class FriendManager {
         }
     }
 
+    private void updateFriendshipStats(String playerName, String requesterName) {
+        FriendStatistics stats = statsCache.computeIfAbsent(playerName, k -> new FriendStatistics());
+        stats.setLastInteraction(System.currentTimeMillis());
+        stats.addFriend(requesterName, System.currentTimeMillis(), 0); // Add friend with default level
+
+        // Update the statistics for the other player as well
+        FriendStatistics otherStats = statsCache.computeIfAbsent(requesterName, k -> new FriendStatistics());
+        otherStats.setLastInteraction(System.currentTimeMillis());
+        otherStats.addFriend(playerName, System.currentTimeMillis(), 0); // Add friend with default level
+    }
+
     private void addFriend(String player1, String player2) {
         List<String> friends = getFriends(player1);
-        if (!friends.contains(player2)) {
+        if (!friends .contains(player2)) {
             friends.add(player2);
             friendCache.put(player1, friends);
         }
@@ -314,8 +315,8 @@ public class FriendManager {
 
         // Update statistics
         FriendStatistics stats = statsCache.computeIfAbsent(name, k -> new FriendStatistics());
-        stats.messagesSent++;
-        stats.lastInteraction = System.currentTimeMillis();
+        stats.setMessagesSent(stats.getMessagesSent() + 1);
+        stats.setLastInteraction(System.currentTimeMillis());
     }
 
     public void setShowLastSeen(String name, boolean showLastSeen) {
@@ -343,7 +344,7 @@ public class FriendManager {
     }
 
     public FriendStatistics getFriendStatistics(String name) {
-        return statsCache.getOrDefault(name, new FriendStatistics());
+        return statsCache.computeIfAbsent(name, k -> new FriendStatistics());
     }
 
     public List<String> getGroupMembers(String playerName, String groupName) {
@@ -365,7 +366,7 @@ public class FriendManager {
     }
 
     public boolean toggleNotifications(String name) {
-        PrivacySettings settings = privacySettingsMap.computeIfAbsent(name, k -> new PrivacySettings());
+        PrivacySettings settings = privacySettingsMap.computeIfAbsent(name, k -> new PrivacySettings ());
         settings.allowMessages = !settings.allowMessages;
         notifyPlayer(name, ChatColor.GREEN + "Notifications " + (settings.allowMessages ? "enabled" : "disabled"));
         return settings.allowMessages;
@@ -484,38 +485,6 @@ public class FriendManager {
         onlineFriendsSet.addAll(currentOnlinePlayers); // Add the current online players
     }
 
-    // Friend Statistics Management
-    private static class FriendStatistics {
-        long friendSince;
-        int messagesSent;
-        int gamesPlayed;
-        long lastInteraction;
-        String status;
-        boolean isOnline;
-        Map<String, Integer> friendshipLevels;
-
-        FriendStatistics() {
-            this.friendSince = System.currentTimeMillis();
-            this.messagesSent = 0;
-            this.gamesPlayed = 0;
-            this.lastInteraction = System.currentTimeMillis();
-            this.status = "Hey there! I'm using LobbyLynx!";
-            this.isOnline = false;
-            this.friendshipLevels = new HashMap<>(); // Ensure this is initialized correctly
-        }
-    }
-
-    private void updateFriendshipStats(String player1, String player2) {
-        FriendStatistics stats = statsCache.computeIfAbsent(player1, k -> new FriendStatistics());
-        stats.lastInteraction = System.currentTimeMillis();
-        stats.friendSince = System.currentTimeMillis(); // Update the friend since timestamp
-
-        // Update the statistics for the other player as well
-        FriendStatistics otherStats = statsCache.computeIfAbsent(player2, k -> new FriendStatistics());
-        otherStats.lastInteraction = System.currentTimeMillis();
-        otherStats.friendSince = System.currentTimeMillis(); // Update the friend since timestamp
-    }
-
     private void notifyPlayer(String playerName, String message) {
         Player player = Bukkit.getPlayer(playerName);
         if (player != null) {
@@ -537,8 +506,8 @@ public class FriendManager {
         String playerName = player.getName();
         FriendStatistics stats = statsCache.get(playerName);
         if (stats != null) {
-            stats.isOnline = true;
-            stats.lastInteraction = System.currentTimeMillis();
+            stats.setOnline(true);
+            stats.setLastInteraction(System.currentTimeMillis());
         }
 
         // Update online status for friends
@@ -546,7 +515,7 @@ public class FriendManager {
         for (String friend : friends) {
             FriendStatistics friendStats = statsCache.get(friend);
             if (friendStats != null) {
-                friendStats.isOnline = true;
+                friendStats.setOnline(true);
             }
         }
     }
@@ -554,8 +523,8 @@ public class FriendManager {
     private void updateLastSeen(String playerName) {
         FriendStatistics stats = statsCache.get(playerName);
         if (stats != null) {
-            stats.isOnline = false; // Set to offline when updating last seen
-            stats.lastInteraction = System.currentTimeMillis(); // Update last interaction time
+            stats.setOnline(false); // Set to offline when updating last seen
+            stats.setLastInteraction(System.currentTimeMillis()); // Update last interaction time
         }
     }
 

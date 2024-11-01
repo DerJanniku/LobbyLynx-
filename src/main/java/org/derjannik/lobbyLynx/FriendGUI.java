@@ -230,17 +230,29 @@ public class FriendGUI implements Listener {
 
         player.openInventory(gui);
     }
+    private FriendStatistics convertFriendStatistics(FriendStatistics managerStats) {
+        FriendStatistics guiStats = new FriendStatistics();
+
+        // Copy data from managerStats to guiStats
+        guiStats.setFriendSince(managerStats.getFriendSince());
+        guiStats.setMessagesSent(managerStats.getMessagesSent());
+        guiStats.setGamesPlayed(managerStats.getGamesPlayed());
+        guiStats.setLastInteraction(managerStats.getLastInteraction());
+        guiStats.setStatus(managerStats.getStatus());
+        guiStats.setOnline(managerStats.isOnline());
+        return guiStats;
+    }
 
     public void openStatisticsGUI(Player player) {
         Inventory gui = Bukkit.createInventory(null, 27, ChatColor.GOLD + "Friend Statistics");
-        org.derjannik.lobbyLynx.FriendStatistics stats = friendManager.getFriendStatistics(player.getName());
+        FriendStatistics stats = friendManager.getFriendStatistics(player.getName());
 
-        gui.setItem(10, createGuiItem(Material.DIAMOND, "Total Friends", String.valueOf(stats.getTotalFriends())));
-        gui.setItem(11, createGuiItem(Material.EMERALD, "Online Friends", String.valueOf(stats.getOnlineFriends())));
-        gui.setItem(12, createGuiItem(Material.GOLDEN_APPLE, "Favorite Friends", String.valueOf(stats.getFavoriteFriends())));
-        gui.setItem(13, createGuiItem(Material.BOOK, "Friend Groups", String.valueOf(stats.getFriendGroups())));
+        gui.setItem(10, createGuiItem(Material.DIAMOND, "Total Friends", new String(stats.getTotalFriends())));
+        gui.setItem(11, createGuiItem(Material.EMERALD, "Online Friends", new String(stats.getOnlineFriends())));
+        gui.setItem(12, createGuiItem(Material.GOLDEN_APPLE, "Favorite Friends", new String(stats.getFavoriteFriends())));
+        gui.setItem(13, createGuiItem(Material.BOOK, "Friend Groups", new String(stats.getFriendGroups())));
         gui.setItem(14, createGuiItem(Material.CLOCK, "Average Friendship Duration", formatDuration(stats.getAverageFriendshipDuration())));
-        gui.setItem(15, createGuiItem(Material.EXPERIENCE_BOTTLE, "Total Friendship Level", String.valueOf(stats.getTotalFriendshipLevel())));
+        gui.setItem(15, createGuiItem(Material.EXPERIENCE_BOTTLE, "Total Friendship Level", new String(stats.getTotalFriendshipLevel())));
         gui.setItem(16, createGuiItem(Material.NETHER_STAR, "Longest Friendship", stats.getLongestFriendshipName()));
 
         gui.setItem(26, createGuiItem(Material.ARROW, "Back to Main Menu"));

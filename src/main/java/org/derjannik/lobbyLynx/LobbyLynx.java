@@ -36,7 +36,7 @@ public class LobbyLynx extends JavaPlugin {
 
         // New Friend Manager
         this.friendManager = new FriendManager(this);
-        getCommand("friend").setExecutor(new org.derjannik.lobbyLynx.command.FriendCommand(this, friendManager));
+        getCommand("friend").setExecutor(new org.derjannik.lobbyLynx.FriendCommand(this, friendManager));
 
         // Initialize FriendGUI
         this.friendGUI = new FriendGUI(this, friendManager);

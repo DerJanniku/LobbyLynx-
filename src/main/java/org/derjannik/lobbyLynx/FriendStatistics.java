@@ -6,13 +6,21 @@ import java.util.List;
 import java.util.Map;
 
 public class FriendStatistics {
-    // Fields to store friends and their associated data
-    private List<String> totalFriends;        // List of all friends
-    private List<String> onlineFriends;       // List of currently online friends
-    private List<String> favoriteFriends;     // List of favorite friends
-    private List<String> friendGroups;        // List of friend groups
-    private List<Long> friendshipDurations;   // List of friendship durations in milliseconds
-    private Map<String, Integer> friendshipLevels; // Map to store friendship levels by friend's name
+    // Original fields
+    private List<String> totalFriends;
+    private List<String> onlineFriends;
+    private List<String> favoriteFriends;
+    private List<String> friendGroups;
+    private List<Long> friendshipDurations;
+    private Map<String, Integer> friendshipLevels;
+
+    // Additional fields from loadStatistics
+    private long friendSince;
+    private int messagesSent;
+    private int gamesPlayed;
+    private long lastInteraction;
+    private String status;
+    private boolean isOnline;
 
     // Constructor
     public FriendStatistics() {
@@ -22,41 +30,93 @@ public class FriendStatistics {
         this.friendGroups = new ArrayList<>();
         this.friendshipDurations = new ArrayList<>();
         this.friendshipLevels = new HashMap<>();
+
+        // Initialize additional fields
+        this.friendSince = System.currentTimeMillis();
+        this.messagesSent = 0;
+        this.gamesPlayed = 0;
+        this.lastInteraction = System.currentTimeMillis();
+        this.status = "Hey there! I'm using LobbyLynx!";
+        this.isOnline = false;
     }
 
-    // Method to get total friends as a character array
+    // Getters and setters for additional fields
+    public long getFriendSince() {
+        return friendSince;
+    }
+
+    public void setFriendSince(long friendSince) {
+        this.friendSince = friendSince;
+    }
+
+    public int getMessagesSent() {
+        return messagesSent;
+    }
+
+    public void setMessagesSent(int messagesSent) {
+        this.messagesSent = messagesSent;
+    }
+
+    public int getGamesPlayed() {
+        return gamesPlayed;
+    }
+
+    public void setGamesPlayed(int gamesPlayed) {
+        this.gamesPlayed = gamesPlayed;
+    }
+
+    public long getLastInteraction() {
+        return lastInteraction;
+    }
+
+    public void setLastInteraction(long lastInteraction) {
+        this.lastInteraction = lastInteraction;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public boolean isOnline() {
+        return isOnline;
+    }
+
+    public void setOnline(boolean online) {
+        isOnline = online;
+    }
+
+    // Methods to get friend statistics
     public char[] getTotalFriends() {
         return String.join(",", totalFriends).toCharArray();
     }
 
-    // Method to get online friends as a character array
     public char[] getOnlineFriends() {
         return String.join(",", onlineFriends).toCharArray();
     }
 
-    // Method to get favorite friends as a character array
     public char[] getFavoriteFriends() {
         return String.join(",", favoriteFriends).toCharArray();
     }
 
-    // Method to get friend groups as a character array
     public char[] getFriendGroups() {
         return String.join(",", friendGroups).toCharArray();
     }
 
-    // Method to calculate the average friendship duration
     public long getAverageFriendshipDuration() {
         if (friendshipDurations.isEmpty()) {
-            return 0; // Return 0 if there are no friendships
+            return 0;
         }
         long totalDuration = 0;
         for (Long duration : friendshipDurations) {
             totalDuration += duration;
         }
-        return totalDuration / friendshipDurations.size(); // Return average duration
+        return totalDuration / friendshipDurations.size();
     }
 
-    // Method to get total friendship levels as a character array
     public char[] getTotalFriendshipLevel() {
         StringBuilder levels = new StringBuilder();
         for (Map.Entry<String, Integer> entry : friendshipLevels.entrySet()) {
@@ -65,10 +125,9 @@ public class FriendStatistics {
         return levels.toString().toCharArray();
     }
 
-    // Method to get the name of the longest friendship
     public String getLongestFriendshipName() {
         if (friendshipDurations.isEmpty()) {
-            return ""; // Return empty string if there are no friendships
+            return "";
         }
         long maxDuration = -1;
         String longestFriend = "";
@@ -78,10 +137,9 @@ public class FriendStatistics {
                 longestFriend = totalFriends.get(i);
             }
         }
-        return longestFriend; // Return the name of the longest friendship
+        return longestFriend;
     }
 
-    // Additional methods to manage friends and friendship data
     public void addFriend(String friendName, long duration, int level) {
         totalFriends.add(friendName);
         friendshipDurations.add(duration);
@@ -111,10 +169,13 @@ public class FriendStatistics {
         onlineFriends.remove(friendName);
         favoriteFriends.remove(friendName);
         friendshipLevels.remove(friendName);
-        // Optionally, remove the friendship duration as well
     }
 
     public void markFriendAsOffline(String friendName) {
         onlineFriends.remove(friendName);
+    }
+
+    public Map<String, Integer> getFriendshipLevels() {
+        return friendshipLevels;
     }
 }
