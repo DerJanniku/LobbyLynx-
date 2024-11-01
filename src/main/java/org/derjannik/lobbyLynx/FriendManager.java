@@ -209,6 +209,24 @@ public class FriendManager {
         }
     }
 
+    public void unblockPlayer(String name, String targetName) {
+    }
+
+    public void blockPlayer(String name, String targetName) {
+    }
+
+    public void sendMessage(String name, String targetName, String message) {
+    }
+
+    public void setShowLastSeen(String name, boolean showLastSeen) {
+    }
+
+    public void setPrivacyLevel(String name, PrivacyLevel level) {
+    }
+
+    public Map<Object, Object> getBlockedPlayers(String playerName) {
+    }
+
     // Friend Statistics Management
     private static class FriendStatistics {
         long friendSince;
@@ -701,5 +719,8 @@ public class FriendManager {
     // Clean up and save data when the plugin is disabled
     public void onDisable() {
         saveAllData();
+    }
+
+    public class PrivacyLevel {
     }
 }
