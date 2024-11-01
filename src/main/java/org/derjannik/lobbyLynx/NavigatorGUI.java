@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,10 +27,11 @@ public class NavigatorGUI implements Listener {
 
     public NavigatorGUI(LobbyLynx plugin, ConfigManager configManager) {
         this.plugin = plugin;
-        this.configManager = configManager;
+        this.configManager = configManager; // Initialize configManager properly
         this.minigameLocations = new HashMap<>();
         loadMinigameLocations();
     }
+
 
     private void loadMinigameLocations() {
         for (String minigameName : configManager.getMinigames()) {
@@ -139,5 +141,9 @@ public class NavigatorGUI implements Listener {
     public void reloadGUI() {
         minigameLocations.clear();
         loadMinigameLocations();
+    }
+
+    public void openNavigatorGUI(@NotNull Player player) {
+        openGUI(player);
     }
 }

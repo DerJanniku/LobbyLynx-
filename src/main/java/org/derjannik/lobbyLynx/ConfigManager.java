@@ -409,25 +409,25 @@ public class ConfigManager {
     }
 
     // Utility methods
-    public void setMinigame(String name, int slot, String item, double x, double y, double z, String world) {
-        String path = "minigames." + name;
-        config.set(path + ".name", name);
-        config.set(path + ".slot", slot);
-        config.set(path + ".item", item);
-        config.set(path + ".x", x);
-        config.set(path + ".y", y);
-        config.set(path + ".z", z);
-        config.set(path + ".world", world);
+// In ConfigManager.java
+    public void setMinigame(String name, int slot, String item, Location location) {
+        config.set("minigames." + name + ".name", name);
+        config.set("minigames." + name + ".slot", slot);
+        config.set("minigames." + name + ".item", item);
+        config.set("minigames." + name + ".world", location.getWorld().getName());
+        config.set("minigames." + name + ".x", location.getX());
+        config.set("minigames." + name + ".y", location.getY());
+        config.set("minigames." + name + ".z", location.getZ());
         plugin.saveConfig();
     }
 
-    public void setLobbySpawn(int slot, String item, double x, double y, double z, String world) {
-        config.set("navigator.lobby_spawn.slot", slot);
-        config.set("navigator.lobby_spawn.item", item);
-        config.set("navigator.lobby_spawn.x", x);
-        config.set("navigator.lobby_spawn.y", y);
-        config.set("navigator.lobby_spawn.z", z);
-        config.set("navigator.lobby_spawn.world", world);
+    public void setLobbySpawn(Location location) {
+        config.set("navigator.lobby_spawn.world", location.getWorld().getName());
+        config.set("navigator.lobby_spawn.x", location.getX());
+        config.set("navigator.lobby_spawn.y", location.getY());
+        config.set("navigator.lobby_spawn.z", location.getZ());
+        config.set("navigator.lobby_spawn.yaw", location.getYaw());
+        config.set("navigator.lobby_spawn.pitch", location.getPitch());
         plugin.saveConfig();
     }
 

@@ -31,7 +31,7 @@ public class NavigatorCommand implements CommandExecutor {
         Player player = (Player) sender;
 
         if (args.length == 0) {
-            new NavigatorGUI(plugin, configManager).openGUI(player);
+            new NavigatorGUI(plugin).openGUI(player);
             return true;
         }
 

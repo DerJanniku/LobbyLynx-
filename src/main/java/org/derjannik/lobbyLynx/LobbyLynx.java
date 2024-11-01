@@ -136,10 +136,14 @@ public class LobbyLynx extends JavaPlugin {
 
     public void reloadNavigator() {
         configManager.reloadConfig();
-        // Reload all GUIs
-        new SettingsGUI(this, configManager).reloadGUI();
-        new GameruleGUI(this, configManager).reloadGUI();
-        new NavigatorGUI(this, configManager).reloadGUI();
+        SettingsGUI settingsGUI = new SettingsGUI(this, configManager);
+        GameruleGUI gameruleGUI = new GameruleGUI(this, configManager);
+        NavigatorGUI navigatorGUI = new NavigatorGUI(this, configManager);
+
+        settingsGUI.reloadGUI();
+        gameruleGUI.reloadGUI();
+        navigatorGUI.reloadGUI();
+
         applyLobbySettings();
         applyGameRules();
     }

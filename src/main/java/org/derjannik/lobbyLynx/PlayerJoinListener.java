@@ -1,7 +1,6 @@
 
 package org.derjannik.lobbyLynx;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -72,7 +71,7 @@ public class PlayerJoinListener implements Listener {
                 && event.getItem().getItemMeta() != null
                 && event.getItem().getItemMeta().getDisplayName().equals(ChatColor.translateAlternateColorCodes('&', configManager.getNavigatorTitle()))) {
             // Open the GUI
-            new NavigatorGUI(plugin, configManager).openGUI(event.getPlayer());
+            new NavigatorGUI(plugin).openGUI(event.getPlayer());
         }
     }
 }
