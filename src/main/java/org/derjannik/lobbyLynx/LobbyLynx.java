@@ -18,7 +18,7 @@ public class LobbyLynx extends JavaPlugin {
     private ConfigManager configManager;
     private CustomScoreboard customScoreboard;
     private CustomTablist customTablist;
-    private ServerSignManager serverSignManager;
+    private ServerSignManager serverSignManager; // Moved declaration here
     private boolean blockBreakingAllowed;
     private boolean blockPlacementAllowed;
     private boolean elytraAllowed;
@@ -26,65 +26,58 @@ public class LobbyLynx extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        // Load configuration and initialize ConfigManager
+        // Load the configuration
         configManager = new ConfigManager(this);
         configManager.loadConfig();
 
-        // Initialize Scoreboard and Tablist
+        // Initialize CustomScoreboard and CustomTablist
         customScoreboard = new CustomScoreboard(this, configManager);
         customTablist = new CustomTablist(this, configManager);
 
-        // Initialize rule fields from configuration
-        loadCustomRules();
-
-        // Register commands and event listeners
-        setupCommands();
-        registerEventListeners();
-
-        // Initialize ServerSignManager and register it
-        serverSignManager = new ServerSignManager(this, configManager);
-        getServer().getPluginManager().registerEvents(serverSignManager, this);
-
-        // Register outgoing plugin channel for BungeeCord/Velocity integration
-        setupBungeeIntegration();
-
-        // Apply lobby settings and default game rules
-        applyLobbySettings();
-        configManager.setDefaultGameRules();
-        configManager.applyGameRules();
-
-        // Start sign updater for animations
-        startSignAnimationUpdater();
-
-        // Ensure default config is saved if missing
-        saveDefaultConfig();
-    }
-
-    private void loadCustomRules() {
-        // Loading configuration-based rules to apply to the lobby
+        // Initialize custom rule fields
         blockBreakingAllowed = configManager.getGameRule("blockBreaking");
         blockPlacementAllowed = configManager.getGameRule("blockPlacement");
         elytraAllowed = !configManager.getGameRule("disableElytra");
         tntExplosionsAllowed = configManager.getGameRule("tnt");
-    }
 
-    private void setupCommands() {
-        // Register lynx commands
+        // Register commands with null checks to prevent NullPointerExceptions
         LynxCommand lynxCommand = new LynxCommand(this, configManager);
         if (getCommand("lynx") != null) {
             getCommand("lynx").setExecutor(lynxCommand);
             getCommand("lynx").setTabCompleter(lynxCommand);
         }
 
-        // Register common commands
+        // Register common commands with null checks
         CommonCommands commonCommands = new CommonCommands(this, configManager);
         if (getCommand("lobby") != null) getCommand("lobby").setExecutor(commonCommands);
         if (getCommand("hub") != null) getCommand("hub").setExecutor(commonCommands);
         if (getCommand("spawn") != null) getCommand("spawn").setExecutor(commonCommands);
+
+        // Register event listeners
+        registerEventListeners();
+
+        // Initialize ServerSignManager
+        this.serverSignManager = new ServerSignManager(this, configManager);
+        getServer().getPluginManager().registerEvents(serverSignManager, this);
+
+        // Register outgoing plugin channel for BungeeCord
+        this.getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+
+        // Initialize BungeeCord/Velocity integration
+        setupBungeeIntegration();
+
+        // Apply lobby settings and game rules
+        applyLobbySettings();
+        configManager.setDefaultGameRules();
+        configManager.applyGameRules();
+
+        // Start the sign updater with animation frames
+        startSignAnimationUpdater();
+
+        saveDefaultConfig();
     }
 
     private void registerEventListeners() {
-        // Register all necessary event listeners
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, configManager, customScoreboard, customTablist), this);
         getServer().getPluginManager().registerEvents(new PlayerQuitListener(this, configManager), this);
         getServer().getPluginManager().registerEvents(new SettingsGUI(this, configManager), this);
@@ -95,24 +88,18 @@ public class LobbyLynx extends JavaPlugin {
     }
 
     private void setupBungeeIntegration() {
-        // Register plugin messaging channel for BungeeCord
+        // Register BungeeCord plugin messaging channel
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
-        // Start periodic server information updater
+        // Start server info updater
         startServerInfoUpdater();
     }
 
+    // Starts the scheduled task to update and animate server signs based on ConfigManager settings
     private void startSignAnimationUpdater() {
-        // Start sign animation if frames are present in the config
         List<List<String>> animationFrames = configManager.getAnimationFrames();
         if (!animationFrames.isEmpty()) {
-            Bukkit.getScheduler().runTaskTimer(this, () -> {
-                try {
-                    serverSignManager.animateSigns(animationFrames);
-                } catch (Exception e) {
-                    getLogger().severe("Error during sign animation: " + e.getMessage());
-                }
-            }, 0L, 20L);
+            Bukkit.getScheduler().runTaskTimer(this, () -> serverSignManager.animateSigns(animationFrames), 0L, 20L);
         }
     }
 
@@ -125,22 +112,31 @@ public class LobbyLynx extends JavaPlugin {
     }
 
     private void updateServerInfo(String serverName) {
-        // Simulate data fetching for server info
+        // Placeholder implementation to simulate server data fetching from BungeeCord/Velocity
         int onlinePlayers = (int) (Math.random() * 100);
         int maxPlayers = 100;
         String motd = "Welcome to " + serverName;
 
+        // Update the ServerSignManager with the retrieved information
         serverSignManager.updateServerInfo(serverName, onlinePlayers, maxPlayers, motd);
     }
 
     @Override
     public void onDisable() {
-        // Save configuration and cleanup if necessary
-        saveConfig();
+        // Cleanup logic if necessary
+    }
+
+    public ConfigManager getConfigManager() {
+        return configManager;
+    }
+
+    public ServerSignManager getServerSignManager() {
+        return serverSignManager; // Added getter method
     }
 
     public void reloadNavigator() {
         configManager.reloadConfig();
+        // Reload all GUIs
         new SettingsGUI(this, configManager).reloadGUI();
         new GameruleGUI(this, configManager).reloadGUI();
         new NavigatorGUI(this, configManager).reloadGUI();
@@ -148,22 +144,101 @@ public class LobbyLynx extends JavaPlugin {
         applyGameRules();
     }
 
+    public void setTNTExplosionsAllowed(boolean allowed) {
+        this.tntExplosionsAllowed = allowed;
+    }
+
+    public boolean areTNTExplosionsAllowed() {
+        return this.tntExplosionsAllowed;
+    }
+
     private void applyLobbySettings() {
         boolean flightEnabled = configManager.isFlightEnabled();
         boolean pvpEnabled = configManager.isPvPEnabled();
         long lobbyTime = configManager.getLobbyTime();
 
-        // Apply settings to players and worlds
+        // Apply flight setting to all online players
         getServer().getOnlinePlayers().forEach(player -> player.setAllowFlight(flightEnabled));
-        getServer().getWorlds().forEach(world -> {
-            world.setPVP(pvpEnabled);
-            world.setTime(lobbyTime);
-        });
+
+        // Apply PvP setting
+        getServer().getWorlds().forEach(world -> world.setPVP(pvpEnabled));
+
+        // Apply time setting
+        getServer().getWorlds().forEach(world -> world.setTime(lobbyTime));
     }
 
-    // Getters for custom rule flags used by listeners
-    public boolean isBlockBreakingAllowed() { return this.blockBreakingAllowed; }
-    public boolean isBlockPlacementAllowed() { return this.blockPlacementAllowed; }
-    public boolean isElytraAllowed() { return this.elytraAllowed; }
-    public boolean areTNTExplosionsAllowed() { return this.tntExplosionsAllowed; }
+    public void applyGameRules() {
+        configManager.applyGameRules();
+    }
+
+    public void setBlockBreakingAllowed(boolean allowed) {
+        this.blockBreakingAllowed = allowed;
+    }
+
+    public boolean isBlockBreakingAllowed() {
+        return this.blockBreakingAllowed;
+    }
+
+    public void setBlockPlacementAllowed(boolean allowed) {
+        this.blockPlacementAllowed = allowed;
+    }
+
+    public boolean isBlockPlacementAllowed() {
+        return this.blockPlacementAllowed;
+    }
+
+    public void setElytraAllowed(boolean allowed) {
+        this.elytraAllowed = allowed;
+    }
+
+    public boolean isElytraAllowed() {
+        return this.elytraAllowed;
+    }
+}
+
+class CustomRuleListener implements Listener {
+    private final LobbyLynx plugin;
+
+    public CustomRuleListener(LobbyLynx plugin) {
+        this.plugin = plugin;
+    }
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        if (!plugin.isBlockBreakingAllowed()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        if (!plugin.isBlockPlacementAllowed()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerToggleGlide(EntityToggleGlideEvent event) {
+        if (event.getEntity() instanceof Player && !plugin.isElytraAllowed()) {
+            event.setCancelled(true);
+            if (event.isGliding()) {
+                ((Player) event.getEntity()).setGliding(false);
+            }
+        }
+    }
+}
+
+class TNTExplosionListener implements Listener {
+    private final LobbyLynx plugin;
+
+    public TNTExplosionListener(LobbyLynx plugin) {
+        this.plugin = plugin;
+    }
+
+    @EventHandler
+    public void onEntityExplode(EntityExplodeEvent event) {
+        if (event.getEntity() instanceof TNTPrimed && !plugin.areTNTExplosionsAllowed()) {
+            event.setCancelled(true);
+        }
+    }
 }
