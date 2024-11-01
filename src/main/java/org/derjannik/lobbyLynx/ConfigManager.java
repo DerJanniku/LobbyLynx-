@@ -410,10 +410,16 @@ public class ConfigManager {
 
     // Utility methods
 // In ConfigManager.java
-    public void setMinigame(String name, int slot, String item, Location location) {
+
+    public void setMinigame(String name, int slot, String item, double x, double y, double z, String world) {
+            Location location = new Location(plugin.getServer().getWorld(world), x, y, z);
+            setMinigame(name, slot, item, location);
+    }
+
+    public void setMinigame(String name, int slot, String itemName, Location location) {
         config.set("minigames." + name + ".name", name);
         config.set("minigames." + name + ".slot", slot);
-        config.set("minigames." + name + ".item", item);
+        config.set("minigames." + name + ".item", itemName);
         config.set("minigames." + name + ".world", location.getWorld().getName());
         config.set("minigames." + name + ".x", location.getX());
         config.set("minigames." + name + ".y", location.getY());

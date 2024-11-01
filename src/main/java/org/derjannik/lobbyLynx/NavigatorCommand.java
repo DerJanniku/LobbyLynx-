@@ -1,10 +1,6 @@
-
 package org.derjannik.lobbyLynx;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -12,7 +8,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class NavigatorCommand implements CommandExecutor {
-
     private final LobbyLynx plugin;
     private final ConfigManager configManager;
 
@@ -31,7 +26,7 @@ public class NavigatorCommand implements CommandExecutor {
         Player player = (Player) sender;
 
         if (args.length == 0) {
-            new NavigatorGUI(plugin).openGUI(player);
+            new NavigatorGUI(plugin, configManager).openGUI(player);
             return true;
         }
 
@@ -65,29 +60,26 @@ public class NavigatorCommand implements CommandExecutor {
     }
 
     private void teleportToLobby(Player player) {
-        double x = configManager.getLobbyX();
-        double y = configManager.getLobbyY();
-        double z = configManager.getLobbyZ();
-        String world = configManager.getLobbyWorld();
+        Location lobbyLocation = configManager.getLobbySpawn();
 
-        // Start the teleport delay
         new BukkitRunnable() {
-            private int countdown = 3; // You might want to add this to config
+            private int countdown = 3;
 
             @Override
             public void run() {
                 if (countdown <= 0) {
                     if (player.isOnline()) {
-                        player.teleport(new Location(Bukkit.getWorld(world), x, y, z));
+                        player.teleport(lobbyLocation);
                         if (configManager.isTeleportMessageEnabled()) {
-                            player.sendMessage(ChatColor.translateAlternateColorCodes('&', configManager.getTeleportMessage()));
+                            player.sendMessage(ChatColor.translateAlternateColorCodes('&',
+                                    configManager.getTeleportMessage()));
                         }
                     }
                     cancel();
                     return;
                 }
 
-                if (!player.isOnline() || hasPlayerMoved(player, x, y, z)) {
+                if (!player.isOnline() || hasPlayerMoved(player, lobbyLocation)) {
                     cancel();
                     return;
                 }
@@ -98,9 +90,11 @@ public class NavigatorCommand implements CommandExecutor {
         }.runTaskTimer(plugin, 0L, 20L);
     }
 
-    private boolean hasPlayerMoved(Player player, double x, double y, double z) {
+    private boolean hasPlayerMoved(Player player, Location targetLocation) {
         Location playerLoc = player.getLocation();
-        return playerLoc.getX() != x || playerLoc.getY() != y || playerLoc.getZ() != z;
+        return playerLoc.getX() != targetLocation.getX() ||
+                playerLoc.getY() != targetLocation.getY() ||
+                playerLoc.getZ() != targetLocation.getZ();
     }
 
     private boolean handleMinigameCommand(Player player, String[] args) {
@@ -136,51 +130,38 @@ public class NavigatorCommand implements CommandExecutor {
             return true;
         }
 
-        String world = args[8];
-
-        // Save minigame to config
-        configManager.setMinigame(name, slot, item.toString(), x, y, z, world);
+        Location location = new Location(player.getWorld(), x, y, z);
+        configManager.setMinigame(name, slot, item.toString(), location);
         player.sendMessage(ChatColor.GREEN + "Minigame " + name + " has been set.");
 
         return true;
     }
 
     private boolean handleLobbySpawnCommand(Player player, String[] args) {
-        if (args.length != 7) {
-            player.sendMessage(ChatColor.RED + "Usage: /lynx set lobbyspawn <slot> <item> <x> <y> <z> <world>");
-            return true;
-        }
-
-        int slot;
-        try {
-            slot = Integer.parseInt(args[2]);
-        } catch (NumberFormatException e) {
-            player.sendMessage(ChatColor.RED + "Invalid slot number.");
-            return true;
-        }
-
-        Material item;
-        try {
-            item = Material.valueOf(args[3].toUpperCase());
-        } catch (IllegalArgumentException e) {
-            player.sendMessage(ChatColor.RED + "Invalid item material.");
+        if (args.length != 6) {
+            player.sendMessage(ChatColor.RED + "Usage: /lynx set lobbyspawn <x> <y> <z> <world>");
             return true;
         }
 
         double x, y, z;
         try {
-            x = Double.parseDouble(args[4]);
-            y = Double.parseDouble(args[5]);
-            z = Double.parseDouble(args[6]);
+            x = Double.parseDouble(args[2]);
+            y = Double.parseDouble(args[3]);
+            z = Double.parseDouble(args[4]);
         } catch (NumberFormatException e) {
             player.sendMessage(ChatColor.RED + "Invalid coordinates.");
             return true;
         }
 
-        String world = args[7];
+        String worldName = args[5];
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            player.sendMessage(ChatColor.RED + "Invalid world name.");
+            return true;
+        }
 
-        // Save lobby spawn to config
-        configManager.setLobbySpawn(slot, item.toString(), x, y, z, world);
+        Location location = new Location(world, x, y, z);
+        configManager.setLobbySpawn(location);
         player.sendMessage(ChatColor.GREEN + "Lobby spawn has been set.");
 
         return true;
