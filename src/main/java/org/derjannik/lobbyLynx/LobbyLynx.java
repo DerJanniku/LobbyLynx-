@@ -15,8 +15,7 @@ public class LobbyLynx extends JavaPlugin {
     private ConfigManager configManager;
     private CustomScoreboard customScoreboard;
     private CustomTablist customTablist;
-    private TeleportSigns teleportSigns;
-    private BungeeSignManager bungeeSignManager;
+    private ServerSignManager serverSignManager; // Changed from TeleportSigns and BungeeSignManager
     private boolean blockBreakingAllowed;
     private boolean blockPlacementAllowed;
     private boolean elytraAllowed;
@@ -52,10 +51,9 @@ public class LobbyLynx extends JavaPlugin {
         // Register event listeners
         registerEventListeners();
 
-        // Initialize and register TeleportSigns
-        teleportSigns = new TeleportSigns(this, configManager);
-        getServer().getPluginManager().registerEvents(teleportSigns, this);
-        teleportSigns.testTeleportSigns();
+        // Initialize and register ServerSignManager
+        serverSignManager = new ServerSignManager(this, configManager);
+        getServer().getPluginManager().registerEvents(serverSignManager, this);
 
         // Initialize BungeeCord/Velocity integration
         setupBungeeIntegration();
@@ -81,35 +79,32 @@ public class LobbyLynx extends JavaPlugin {
         // Register BungeeCord plugin messaging channel
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
-        // Initialize and register BungeeSignManager
-        bungeeSignManager = new BungeeSignManager(this);
-        getServer().getPluginManager().registerEvents(bungeeSignManager, this);
-
         // Start server info updater
         startServerInfoUpdater();
     }
 
-    public BungeeSignManager getBungeeSignManager() {
-        return bungeeSignManager;
+    public ServerSignManager getServerSignManager() {
+        return serverSignManager;
     }
 
     private void startServerInfoUpdater() {
         getServer().getScheduler().runTaskTimerAsynchronously(this, () -> {
-            for (String serverName : configManager.getConfig().getStringList("velocity-servers")) {
+            for (String serverName : configManager.getConfig().getStringList("server-signs.servers")) {
                 updateServerInfo(serverName);
             }
         }, 0L, 20L * 10); // Update every 10 seconds
     }
 
     private void updateServerInfo(String serverName) {
-        // This is a placeholder. In a real implementation, you would fetch this data from Velocity
+        // This is a placeholder. In a real implementation, you would fetch this data from Velocity/BungeeCord
         int onlinePlayers = (int) (Math.random() * 100);
         int maxPlayers = 100;
         String motd = "Welcome to " + serverName;
 
-        // Update the TeleportSigns with this information
-        teleportSigns.updateServerInfo(serverName, onlinePlayers, maxPlayers, motd);
+        // Update the ServerSignManager with this information
+        serverSignManager.updateServerInfo(serverName, onlinePlayers, maxPlayers, motd);
     }
+
 
     @Override
     public void onDisable() {
