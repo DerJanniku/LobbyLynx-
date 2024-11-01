@@ -2,7 +2,6 @@ package org.derjannik.lobbyLynx;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -11,9 +10,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,6 +18,7 @@ public class FriendManager {
     private final File friendsFile;
     private final File requestsFile;
     private final File statsFile;
+    private final Map<String, PrivacySettings> privacySettingsMap;
     private FileConfiguration friendsConfig;
     private FileConfiguration requestsConfig;
     private FileConfiguration statsConfig;
@@ -31,7 +28,11 @@ public class FriendManager {
     private final Map<String, Set<String>> onlineFriends = new ConcurrentHashMap<>();
     private final Map<String, String> playerStatus = new ConcurrentHashMap<>();
     private final Map<String, Long> lastSeen = new ConcurrentHashMap<>();
-
+    private Map<String, String> statusMap; // Maps player names to their statuses
+    private Map<String, Set<String>> friendsMap; // Maps player names to their friends
+    private Set<String> onlineFriendsSet; // Set of currently online friends
+    private final Map<String, Set<String>> blockedPlayers = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> favoriteFriends = new ConcurrentHashMap<>();
     private boolean useMysql;
     private Connection mysqlConnection;
 
@@ -40,11 +41,16 @@ public class FriendManager {
         this.friendsFile = new File(plugin.getDataFolder(), "friends.yml");
         this.requestsFile = new File(plugin.getDataFolder(), "friend_requests.yml");
         this.statsFile = new File(plugin.getDataFolder(), "friend_stats.yml");
+        this.privacySettingsMap = new HashMap<>();
         this.useMysql = plugin.getConfig().getBoolean("mysql.enabled", false);
         loadConfigs();
+        statusMap = new HashMap<>();
+        friendsMap = new HashMap<>();
+        onlineFriendsSet = new HashSet<>(); // Initialize the set of online friends
         if (useMysql) {
             connectToDatabase();
         }
+
         startAutoSave();
         startOnlineTracking();
     }
@@ -68,6 +74,42 @@ public class FriendManager {
         for (String player : statsConfig.getKeys(false)) {
             statsCache.put(player, loadStatistics(player));
         }
+    }
+
+    private FriendStatistics loadStatistics(String player) {
+        FileConfiguration statsConfig = plugin.getStatsConfig();
+        String path = "statistics." + player;
+        FriendStatistics stats = new FriendStatistics();
+
+        if (statsConfig.contains(path)) {
+            stats.friendSince = statsConfig.getLong(path + ".friendSince");
+            stats.messagesSent = statsConfig.getInt(path + ".messagesSent");
+            stats.gamesPlayed = statsConfig.getInt(path + ".gamesPlayed");
+            stats.lastInteraction = statsConfig.getLong(path + ".lastInteraction");
+            stats.status = statsConfig.getString(path + ".status", "Hey there! I'm using LobbyLynx!");
+            stats.isOnline = statsConfig.getBoolean(path + ".isOnline", false);
+            // Initialize friendshipLevels as a Map
+            stats.friendshipLevels = new HashMap<>();
+            if (statsConfig.contains(path + ".friendshipLevels")) {
+                List<String> levels = statsConfig.getStringList(path + ".friendshipLevels");
+                for (String level : levels) {
+                    String[] parts = level.split(":");
+                    if (parts.length == 2) {
+                        stats.friendshipLevels.put(parts[0], Integer.parseInt(parts[1]));
+                    }
+                }
+            }
+        } else {
+            // Default values
+            stats.friendSince = System.currentTimeMillis();
+            stats.messagesSent = 0;
+            stats.gamesPlayed = 0;
+            stats.lastInteraction = System.currentTimeMillis();
+            stats.status = "Hey there! I'm using LobbyLynx!";
+            stats.isOnline = false;
+            stats.friendshipLevels = new HashMap<>(); // Initialize as an empty map
+        }
+        return stats;
     }
 
     private void connectToDatabase() {
@@ -124,6 +166,31 @@ public class FriendManager {
         }
     }
 
+    private void saveStatistics(String key, FriendStatistics value) {
+        FileConfiguration statsConfig = plugin.getStatsConfig();
+        String path = "statistics." + key;
+
+        statsConfig.set(path + ".friendSince", value.friendSince);
+        statsConfig.set(path + ".messagesSent", value.messagesSent);
+        statsConfig.set(path + ".gamesPlayed", value.gamesPlayed);
+        statsConfig.set(path + ".lastInteraction", value.lastInteraction);
+        statsConfig.set(path + ".status", value.status);
+        statsConfig.set(path + ".isOnline", value.isOnline);
+
+        // Save friendship levels as a list of strings
+        List<String> levels = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : value.friendshipLevels.entrySet()) {
+            levels.add(entry.getKey() + ":" + entry.getValue());
+        }
+        statsConfig.set(path + ".friendshipLevels", levels);
+
+        try {
+            statsConfig.save(plugin.getStatsFile());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void saveToDB() {
         // Implement MySQL saving logic here
     }
@@ -167,7 +234,6 @@ public class FriendManager {
             addFriend(playerName, requesterName);
             addFriend(requesterName, playerName);
 
-            notifyPlayer(playerName, ChatColor.GREEN + "You are now friends with " + requesterName);
             notifyPlayer(requesterName, ChatColor.GREEN + playerName + " accepted your friend request!");
 
             updateFriendshipStats(playerName, requesterName);
@@ -233,7 +299,7 @@ public class FriendManager {
             return;
         }
 
-        PrivacySettings receiverSettings = privacySettings.get(targetName);
+        PrivacySettings receiverSettings = privacySettingsMap.get(targetName);
         if (receiverSettings != null && !receiverSettings.allowMessages) {
             notifyPlayer(name, ChatColor.RED + "This player is not accepting messages right now.");
             return;
@@ -253,19 +319,169 @@ public class FriendManager {
     }
 
     public void setShowLastSeen(String name, boolean showLastSeen) {
-        PrivacySettings settings = privacySettings.computeIfAbsent(name, k -> new PrivacySettings());
+        PrivacySettings settings = privacySettingsMap.computeIfAbsent(name, k -> new PrivacySettings());
         settings.showLastSeen = showLastSeen;
         notifyPlayer(name, ChatColor.GREEN + "Last seen visibility set to " + (showLastSeen ? "on" : "off"));
     }
 
     public void setPrivacyLevel(String name, PrivacyLevel level) {
-        PrivacySettings settings = privacySettings.computeIfAbsent(name, k -> new PrivacySettings());
+        PrivacySettings settings = privacySettingsMap.computeIfAbsent(name, k -> new PrivacySettings());
         settings.privateMode = (level == PrivacyLevel.PRIVATE);
         notifyPlayer(name, ChatColor.GREEN + "Privacy level set to " + (settings.privateMode ? "private" : "public"));
     }
 
     public Set<String> getBlockedPlayers(String playerName) {
         return blockedPlayers.getOrDefault(playerName, new HashSet<>());
+    }
+
+    public PrivacySettings getPrivacySettings(String playerName) {
+        return privacySettingsMap.getOrDefault(playerName, new PrivacySettings());
+    }
+
+    public boolean isFavorite(String name, String friendName) {
+        return favoriteFriends.getOrDefault(name, new HashSet<>()).contains(friendName);
+    }
+
+    public FriendStatistics getFriendStatistics(String name) {
+        return statsCache.getOrDefault(name, new FriendStatistics());
+    }
+
+    public List<String> getGroupMembers(String playerName, String groupName) {
+        // This method should return members of a specific group
+        return new ArrayList<>(); // Placeholder for group members retrieval
+    }
+
+    public List<String> getFavorites(String name) {
+        return new ArrayList<>(favoriteFriends.getOrDefault(name, new HashSet<>()));
+    }
+
+    public List<String> getActivityFeed(String name) {
+        // Placeholder for activity feed retrieval
+        return new ArrayList<>();
+    }
+
+    public void declineRequest(String name, String requestName) {
+        denyRequest(name, requestName);
+    }
+
+    public boolean toggleNotifications(String name) {
+        PrivacySettings settings = privacySettingsMap.computeIfAbsent(name, k -> new PrivacySettings());
+        settings.allowMessages = !settings.allowMessages;
+        notifyPlayer(name, ChatColor.GREEN + "Notifications " + (settings.allowMessages ? "enabled" : "disabled"));
+        return settings.allowMessages;
+    }
+
+    public void clearBlockedPlayers(String name) {
+        blockedPlayers.remove(name);
+        notifyPlayer(name, ChatColor.GREEN + "All blocked players have been cleared.");
+    }
+
+    public String getFriendNickname(String name, String friend) {
+        // Implement logic to retrieve the nickname for the friend
+        return ""; // Return the nickname or an empty string if none exists
+    }
+
+    public String getFavoriteFriends(String name) {
+        Set<String> favorites = favoriteFriends.getOrDefault(name, new HashSet<>());
+        return String.join(", ", favorites); // Return a comma-separated list of favorite friends
+    }
+
+    public void createFriendGroup(String name, String groupName) {
+        // Implement logic to create a friend group for the player
+    }
+
+    public void addFriendToGroup(String name, String arg, String groupName) {
+        // Implement logic to add a friend to a specific group
+    }
+
+    public void removeFriendFromGroup(String name, String arg, String groupName) {
+        // Implement logic to remove a friend from a specific group
+    }
+
+    public List<String> getFriendsInGroup(String name, String groupName) {
+        // Implement logic to retrieve friends in a specific group
+        return new ArrayList<>(); // Placeholder
+    }
+
+    public void toggleFavoriteFriend(String name, String targetName) {
+        Set<String> favorites = favoriteFriends.computeIfAbsent(name, k -> new HashSet<>());
+        if (favorites.contains(targetName)) {
+            favorites.remove(targetName);
+            notifyPlayer(name, ChatColor.YELLOW + targetName + " has been removed from your favorites.");
+        } else {
+            favorites.add(targetName);
+            notifyPlayer(name, ChatColor.GREEN + targetName + " has been added to your favorites.");
+        }
+    }
+
+    public void setFriendNickname(String name, String targetName, String nickname) {
+        // Implement logic to set a nickname for a friend
+    }
+
+    public void sendFriendGift(String name, String targetName, String giftType) {
+        // Implement logic to send a gift to a friend
+    }
+
+    public void createFriendChallenge(String name, String targetName, String challengeType) {
+        // Implement logic to create a challenge for a friend
+    }
+
+    public List<String> searchFriends(String name, String query) {
+        // Implement logic to search friends based on the query
+        return new ArrayList<>(); // Placeholder
+    }
+
+    public String generateFriendReport(String targetName) {
+        // Implement logic to generate a report for a friend
+        return ""; // Placeholder
+    }
+
+    public String exportFriendList(String name) {
+        // Implement logic to export the friend list
+        return ""; // Placeholder
+    }
+
+    public void importFriendList(String name, String importList) {
+        // Implement logic to import a friend list
+    }
+
+    public void toggleFriendNotifications(String name, boolean enabled) {
+        // Implement logic to toggle notifications for friends
+    }
+
+    public Collection<String> getFriendGroups(String name) {
+        // Implement logic to retrieve friend groups for a player
+        return new ArrayList<>(); // Placeholder
+    }
+
+    public String getStatus(String friend) {
+        return statusMap.get(friend); // Return the status for the specified friend
+    }
+
+    public void setStatus(String name, String newStatus) {
+        statusMap.put(name, newStatus); // Set the new status for the specified player
+    }
+
+    public Set<String> getOnlineFriends(String name) {
+        Set<String> onlineFriends = new HashSet<>();
+        Set<String> friends = friendsMap.get(name); // Get the friends of the specified player
+
+        if (friends != null) {
+            for (String friend : friends) {
+                if (isOnline(friend)) { // Check if each friend is online
+                    onlineFriends.add(friend);
+                }
+            }
+        }
+        return onlineFriends; // Return the set of online friends
+    }
+
+    private boolean isOnline(String friend) {
+        return onlineFriendsSet.contains(friend);
+    }
+    public void updateOnlineStatus(Set<String> currentOnlinePlayers) {
+        onlineFriendsSet.clear(); // Clear the current set
+        onlineFriendsSet.addAll(currentOnlinePlayers); // Add the current online players
     }
 
     // Friend Statistics Management
@@ -285,480 +501,72 @@ public class FriendManager {
             this.lastInteraction = System.currentTimeMillis();
             this.status = "Hey there! I'm using LobbyLynx!";
             this.isOnline = false;
-            this.friendshipLevels = new HashMap<>();
+            this.friendshipLevels = new HashMap<>(); // Ensure this is initialized correctly
         }
     }
 
     private void updateFriendshipStats(String player1, String player2) {
         FriendStatistics stats = statsCache.computeIfAbsent(player1, k -> new FriendStatistics());
         stats.lastInteraction = System.currentTimeMillis();
+        stats.friendSince = System.currentTimeMillis(); // Update the friend since timestamp
 
-        // Update friendship levels
-        int currentLevel = stats.friendshipLevels.getOrDefault(player2, 0);
-        if (currentLevel < getMaxFriendshipLevel()) {
-            long friendshipDuration = System.currentTimeMillis() - stats.friendSince;
-            int newLevel = calculateFriendshipLevel(friendshipDuration);
-            if (newLevel > currentLevel) {
-                stats.friendshipLevels.put(player2, newLevel);
-                grantFriendshipRewards(player1, player2, newLevel);
-            }
-        }
+        // Update the statistics for the other player as well
+        FriendStatistics otherStats = statsCache.computeIfAbsent(player2, k -> new FriendStatistics());
+        otherStats.lastInteraction = System.currentTimeMillis();
+        otherStats.friendSince = System.currentTimeMillis(); // Update the friend since timestamp
     }
 
-    private int getMaxFriendshipLevel() {
-        return plugin.getConfig().getInt("friends.max_friendship_level", 10);
-    }
-
-    private int calculateFriendshipLevel(long duration) {
-        // Convert duration to days
-        long days = duration / (1000 * 60 * 60 * 24);
-        // Simple level calculation: 1 level per week up to max level
-        return Math.min(getMaxFriendshipLevel(), (int) (days / 7) + 1);
-    }
-
-    private void grantFriendshipRewards(String player1, String player2, int level) {
-        String rewardCommand = plugin.getConfig().getString("friends.rewards.level_" + level, null);
-        if (rewardCommand != null) {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                        rewardCommand.replace("%player%", player1));
-                notifyPlayer(player1, ChatColor.GREEN + "You reached friendship level " + level + " with " + player2 + "!");
-            });
-        }
-    }
-
-    // Friend Privacy Settings
-    private Map<String, Set<String>> blockedPlayers = new ConcurrentHashMap<>();
-    private Map<String, PrivacySettings> privacySettings = new ConcurrentHashMap<>();
-
-    public static class PrivacySettings {
-        boolean showOnlineStatus = true;
-        boolean allowFriendRequests = true;
-        boolean showLastSeen = true;
-        boolean allowMessages = true;
-        boolean privateMode = false;
-    }
-
-    public void togglePrivacySetting(String playerName, String setting) {
-        PrivacySettings settings = privacySettings.computeIfAbsent(playerName, k -> new PrivacySettings());
-        switch (setting.toLowerCase()) {
-            case "online_status":
-                settings.showOnlineStatus = !settings.showOnlineStatus;
-                break;
-            case "friend_requests":
-                settings.allowFriendRequests = !settings.allowFriendRequests;
-                break;
-            case "last_seen":
-                settings.showLastSeen = !settings.showLastSeen;
-                break;
-            case "messages":
-                settings.allowMessages = !settings.allowMessages;
-                break;
-            case "private_mode":
-                settings.privateMode = !settings.privateMode;
-                break;
-        }
-    }
-
-    // Friend Messaging System
-    public void sendFriendMessage(String sender, String receiver, String message) {
-        if (!areFriends(sender, receiver)) {
-            notifyPlayer(sender, ChatColor.RED + "You can only send messages to your friends!");
-            return;
-        }
-
-        PrivacySettings receiverSettings = privacySettings.get(receiver);
-        if (receiverSettings != null && !receiverSettings.allowMessages) {
-            notifyPlayer(sender, ChatColor.RED + "This player is not accepting messages right now.");
-            return;
-        }
-
-        String formattedMessage = ChatColor.GOLD + "[Friend] " +
-                ChatColor.YELLOW + sender +
-                ChatColor.WHITE + ": " + message;
-
-        notifyPlayer(receiver, formattedMessage);
-        notifyPlayer(sender, formattedMessage);
-
-        // Update statistics
-        FriendStatistics stats = statsCache.computeIfAbsent(sender, k -> new FriendStatistics());
-        stats.messagesSent++;
-        stats.lastInteraction = System.currentTimeMillis();
-    }
-
-    // Friend Status Management
-    public void setStatus(String playerName, String status) {
-        playerStatus.put(playerName, status);
-        notifyFriends(playerName, ChatColor.YELLOW + playerName + " updated their status: " + status);
-    }
-
-    public String getStatus(String playerName) {
-        return playerStatus.getOrDefault(playerName, "Hey there! I'm using LobbyLynx!");
-    }
-
-    // Online Friend Tracking
-    private void updateOnlineFriends(Player player) {
-        String playerName = player.getName();
-        Set<String> online = new HashSet<>();
-
-        for (String friend : getFriends(playerName)) {
-            Player friendPlayer = Bukkit.getPlayer(friend);
-            if (friendPlayer != null && friendPlayer.isOnline()) {
-                online.add(friend);
-            }
-        }
-
-        onlineFriends.put(playerName, online);
-    }
-
-    public Set<String> getOnlineFriends(String playerName) {
-        return onlineFriends.getOrDefault(playerName, new HashSet<>());
-    }
-
-    // Last Seen Tracking
-    private void updateLastSeen(String playerName) {
-        lastSeen.put(playerName, System.currentTimeMillis());
-    }
-
-    public String getLastSeen(String playerName) {
-        Long time = lastSeen.get(playerName);
-        if (time == null) return "Never";
-
-        long diff = System.currentTimeMillis() - time;
-        if (diff < 60000) return "Just now";
-        if (diff < 3600000) return (diff / 60000) + " minutes ago";
-        if (diff < 86400000) return (diff / 3600000) + " hours ago";
-        return (diff / 86400000) + " days ago";
-    }
-
-    // Utility Methods
     private void notifyPlayer(String playerName, String message) {
         Player player = Bukkit.getPlayer(playerName);
-        if (player != null && player.isOnline()) {
+        if (player != null) {
             player.sendMessage(message);
         }
     }
 
-    private void notifyFriends(String playerName, String message) {
-        for (String friend : getFriends(playerName)) {
-            notifyPlayer(friend, message);
-        }
+    boolean areFriends(String player1, String player2) {
+        List<String> friends1 = getFriends(player1);
+        return friends1.contains(player2);
     }
 
     private boolean hasReachedFriendLimit(String playerName) {
-        Player player = Bukkit.getPlayer(playerName);
-        if (player == null) return true;
-
-        int currentFriends = getFriends(playerName).size();
-        int maxFriends = plugin.getConfig().getInt("friends.max_friends." + getPlayerGroup(player), 50);
-        return currentFriends >= maxFriends;
+        // Implement logic to check if the player has reached their friend limit
+        return false; // Placeholder for friend limit check
     }
 
-    private String getPlayerGroup(Player player) {
-        // This method should return the player's permission group
-        // Implement this based on your permission system
-        return "default";
-    }
-
-    public boolean areFriends(String player1, String player2) {
-        List<String> friends = getFriends(player1);
-        return friends.contains(player2);
-    }
-
-    // Friend Groups
-    private Map<String, Map<String, List<String>>> friendGroups = new ConcurrentHashMap<>();
-
-    public void createFriendGroup(String playerName, String groupName) {
-        friendGroups.computeIfAbsent(playerName, k -> new HashMap<>()).put(groupName, new ArrayList<>());
-        notifyPlayer(playerName, ChatColor.GREEN + "Friend group '" + groupName + "' created!");
-    }
-
-    public void addFriendToGroup(String playerName, String friendName, String groupName) {
-        Map<String, List<String>> groups = friendGroups.computeIfAbsent(playerName, k -> new HashMap<>());
-        List<String> groupMembers = groups.computeIfAbsent(groupName, k -> new ArrayList<>());
-        if (!groupMembers.contains(friendName)) {
-            groupMembers.add(friendName);
-            notifyPlayer(playerName, ChatColor.GREEN + friendName + " added to group '" + groupName + "'!");
-        }
-    }
-
-    public void removeFriendFromGroup(String playerName, String friendName, String groupName) {
-        Map<String, List<String>> groups = friendGroups.get(playerName);
-        if (groups != null) {
-            List<String> groupMembers = groups.get(groupName);
-            if (groupMembers != null) {
-                groupMembers.remove(friendName);
-                notifyPlayer(playerName, ChatColor.YELLOW + friendName + " removed from group '" + groupName + "'!");
-            }
-        }
-    }
-
-    public List<String> getFriendGroups(String playerName) {
-        return new ArrayList<>(friendGroups.getOrDefault(playerName, new HashMap<>()).keySet());
-    }
-
-    public List<String> getFriendsInGroup(String playerName, String groupName) {
-        Map<String, List<String>> groups = friendGroups.get(playerName);
-        if (groups != null) {
-            return new ArrayList<>(groups.getOrDefault(groupName, new ArrayList<>()));
-        }
-        return new ArrayList<>();
-    }
-
-    // Friend Suggestions
-    public List<String> getFriendSuggestions(String playerName) {
-        List<String> suggestions = new ArrayList<>();
-        List<String> playerFriends = getFriends(playerName);
-
-        for (String friend : playerFriends) {
-            List<String> friendOfFriends = getFriends(friend);
-            for (String potentialFriend : friendOfFriends) {
-                if (!playerFriends.contains(potentialFriend) && !potentialFriend.equals(playerName)) {
-                    suggestions.add(potentialFriend);
-                }
-            }
+    private void updateOnlineFriends(Player player) {
+        String playerName = player.getName();
+        FriendStatistics stats = statsCache.get(playerName);
+        if (stats != null) {
+            stats.isOnline = true;
+            stats.lastInteraction = System.currentTimeMillis();
         }
 
-        // Sort suggestions by frequency (most common friends of friends first)
-        suggestions.sort((a, b) -> Collections.frequency(suggestions, b) - Collections.frequency(suggestions, a));
-
-        // Remove duplicates
-        return new ArrayList<>(new LinkedHashSet<>(suggestions));
-    }
-
-    // Friend Activity Feed
-    private Map<String, List<FriendActivity>> activityFeed = new ConcurrentHashMap<>();
-
-    public static class FriendActivity {
-        String friendName;
-        String activity;
-        long timestamp;
-
-        FriendActivity(String friendName, String activity) {
-            this.friendName = friendName;
-            this.activity = activity;
-            this.timestamp = System.currentTimeMillis();
-        }
-    }
-
-    public void addFriendActivity(String playerName, String activity) {
-        FriendActivity newActivity = new FriendActivity(playerName, activity);
-        for (String friend : getFriends(playerName)) {
-            activityFeed.computeIfAbsent(friend, k -> new ArrayList<>()).add(newActivity);
-        }
-    }
-
-    public List<FriendActivity> getFriendActivityFeed(String playerName, int limit) {
-        List<FriendActivity> feed = activityFeed.getOrDefault(playerName, new ArrayList<>());
-        feed.sort((a, b) -> Long.compare(b.timestamp, a.timestamp)); // Sort by most recent
-        return feed.subList(0, Math.min(feed.size(), limit));
-    }
-
-    // Friend Leaderboard
-    public List<Map.Entry<String, Integer>> getFriendLeaderboard(String category, int limit) {
-        Map<String, Integer> leaderboard = new HashMap<>();
-
-        for (Map.Entry<String, FriendStatistics> entry : statsCache.entrySet()) {
-            FriendStatistics stats = entry.getValue();
-            int score = 0;
-            switch (category) {
-                case "messages":
-                    score = stats.messagesSent;
-                    break;
-                case "games":
-                    score = stats.gamesPlayed;
-                    break;
-                case "friends":
-                    score = getFriends(entry.getKey()).size();
-                    break;
-            }
-            leaderboard.put(entry.getKey(), score);
-        }
-
-        List<Map.Entry<String, Integer>> sortedLeaderboard = new ArrayList<>(leaderboard.entrySet());
-        sortedLeaderboard.sort((a, b) -> b.getValue().compareTo(a.getValue()));
-
-        return sortedLeaderboard.subList(0, Math.min(sortedLeaderboard.size(), limit));
-    }
-
-    // Friend Events
-    public void friendJoinedServer(String playerName) {
-        notifyFriends(playerName, ChatColor.GREEN + playerName + " has joined the server!");
-        addFriendActivity(playerName, "joined the server");
-    }
-
-    public void friendLeftServer(String playerName) {
-        notifyFriends(playerName, ChatColor.YELLOW + playerName + " has left the server!");
-        addFriendActivity(playerName, "left the server");
-    }
-
-    public void friendAchievement(String playerName, String achievement) {
-        notifyFriends(playerName, ChatColor.GOLD + playerName + " has earned the achievement: " + achievement);
-        addFriendActivity(playerName, "earned the achievement: " + achievement);
-    }
-
-    // Data Management
-    private FriendStatistics loadStatistics(String playerName) {
-        FriendStatistics stats = new FriendStatistics();
-        ConfigurationSection section = statsConfig.getConfigurationSection(playerName);
-        if (section != null) {
-            stats.friendSince = section.getLong("friendSince", stats.friendSince);
-            stats.messagesSent = section.getInt("messagesSent", stats.messagesSent);
-            stats.gamesPlayed = section.getInt("gamesPlayed", stats.gamesPlayed);
-            stats.lastInteraction = section.getLong("lastInteraction", stats.lastInteraction);
-            stats.status = section.getString("status", stats.status);
-            stats.isOnline = section.getBoolean("isOnline", stats.isOnline);
-            ConfigurationSection levelsSection = section.getConfigurationSection("friendshipLevels");
-            if (levelsSection != null) {
-                for (String friend : levelsSection.getKeys(false)) {
-                    stats.friendshipLevels.put(friend, levelsSection.getInt(friend));
-                }
-            }
-        }
-        return stats;
-    }
-
-    private void saveStatistics(String playerName, FriendStatistics stats) {
-        ConfigurationSection section = statsConfig.createSection(playerName);
-        section.set("friendSince", stats.friendSince);
-        section.set("messagesSent", stats.messagesSent);
-        section.set("gamesPlayed", stats.gamesPlayed);
-        section.set("lastInteraction", stats.lastInteraction);
-        section.set("status", stats.status);
-        section.set("isOnline", stats.isOnline);
-        ConfigurationSection levelsSection = section.createSection("friendshipLevels");
-        for (Map.Entry<String, Integer> entry : stats.friendshipLevels.entrySet()) {
-            levelsSection.set(entry.getKey(), entry.getValue());
-        }
-    }
-
-    // Friend Nicknames
-    private Map<String, Map<String, String>> friendNicknames = new ConcurrentHashMap<>();
-
-    public void setFriendNickname(String playerName, String friendName, String nickname) {
-        friendNicknames.computeIfAbsent(playerName, k -> new HashMap<>()).put(friendName, nickname);
-        notifyPlayer(playerName, ChatColor.GREEN + "Nickname for " + friendName + " set to " + nickname);
-    }
-
-    public String getFriendNickname(String playerName, String friendName) {
-        return friendNicknames.getOrDefault(playerName, new HashMap<>()).getOrDefault(friendName, friendName);
-    }
-
-    // Friend Favorite System
-    private Map<String, Set<String>> favoriteFriends = new ConcurrentHashMap<>();
-
-    public void toggleFavoriteFriend(String playerName, String friendName) {
-        Set<String> favorites = favoriteFriends.computeIfAbsent(playerName, k -> new HashSet<>());
-        if (favorites.contains(friendName)) {
-            favorites.remove(friendName);
-            notifyPlayer(playerName, ChatColor.YELLOW + friendName + " removed from favorites");
-        } else {
-            favorites.add(friendName);
-            notifyPlayer(playerName, ChatColor.GREEN + friendName + " added to favorites");
-        }
-    }
-
-    public Set<String> getFavoriteFriends(String playerName) {
-        return new HashSet<>(favoriteFriends.getOrDefault(playerName, new HashSet<>()));
-    }
-
-    // Friend Gifts
-    public void sendFriendGift(String senderName, String receiverName, String giftType) {
-        if (!areFriends(senderName, receiverName)) {
-            notifyPlayer(senderName, ChatColor.RED + "You can only send gifts to your friends!");
-            return;
-        }
-
-        // Implement gift logic here (e.g., virtual items, effects, etc.)
-        notifyPlayer(senderName, ChatColor.GREEN + "You sent a " + giftType + " gift to " + receiverName);
-        notifyPlayer(receiverName, ChatColor.GREEN + "You received a " + giftType + " gift from " + senderName);
-        addFriendActivity(senderName, "sent a " + giftType + " gift to " + receiverName);
-    }
-
-    // Friend Challenges
-    private Map<String, List<FriendChallenge>> activeChallenges = new ConcurrentHashMap<>();
-
-    public static class FriendChallenge {
-        String challenger;
-        String challenged;
-        String challengeType;
-        boolean completed;
-
-        FriendChallenge(String challenger, String challenged, String challengeType) {
-            this.challenger = challenger;
-            this.challenged = challenged;
-            this.challengeType = challengeType;
-            this.completed = false;
-        }
-    }
-
-    public void createFriendChallenge(String challenger, String challenged, String challengeType) {
-        FriendChallenge challenge = new FriendChallenge(challenger, challenged, challengeType);
-        activeChallenges.computeIfAbsent(challenged, k -> new ArrayList<>()).add(challenge);
-        notifyPlayer(challenger, ChatColor.GREEN + "Challenge sent to " + challenged);
-        notifyPlayer(challenged, ChatColor.YELLOW + challenger + " has challenged you to " + challengeType);
-    }
-
-    public List<FriendChallenge> getActiveChallenges(String playerName) {
-        return new ArrayList<>(activeChallenges.getOrDefault(playerName, new ArrayList<>()));
-    }
-
-    public void completeFriendChallenge(String playerName, int challengeIndex) {
-        List<FriendChallenge> challenges = activeChallenges.get(playerName);
-        if (challenges != null && challengeIndex < challenges.size()) {
-            FriendChallenge challenge = challenges.get(challengeIndex);
-            challenge.completed = true;
-            notifyPlayer(playerName, ChatColor.GREEN + "Challenge completed!");
-            notifyPlayer(challenge.challenger, ChatColor.GREEN + playerName + " completed your " + challenge.challengeType + " challenge!");
-            addFriendActivity(playerName, "completed a " + challenge.challengeType + " challenge from " + challenge.challenger);
-        }
-    }
-
-    // Friend Notifications
-    public void toggleFriendNotifications(String playerName, boolean enabled) {
-        PrivacySettings settings = privacySettings.computeIfAbsent(playerName, k -> new PrivacySettings());
-        settings.allowMessages = enabled;
-        notifyPlayer(playerName, ChatColor.GREEN + "Friend notifications " + (enabled ? "enabled" : "disabled"));
-    }
-
-    // Friend Search
-    public List<String> searchFriends(String playerName, String query) {
-        List<String> allFriends = getFriends(playerName);
-        return allFriends.stream()
-                .filter(friend -> friend.toLowerCase().contains(query.toLowerCase()))
-                .collect(java.util.stream.Collectors.toList());
-    }
-
-    // Friend Import/Export
-    public String exportFriendList(String playerName) {
+        // Update online status for friends
         List<String> friends = getFriends(playerName);
-        return String.join(",", friends);
-    }
-
-    public void importFriendList(String playerName, String friendListString) {
-        String[] friendArray = friendListString.split(",");
-        for (String friend : friendArray) {
-            if (!areFriends(playerName, friend)) {
-                addFriend(playerName, friend);
-                notifyPlayer(playerName, ChatColor.GREEN + friend + " added to your friend list");
+        for (String friend : friends) {
+            FriendStatistics friendStats = statsCache.get(friend);
+            if (friendStats != null) {
+                friendStats.isOnline = true;
             }
         }
     }
 
-    // Friend Statistics Report
-    public String generateFriendReport(String playerName) {
-        StringBuilder report = new StringBuilder();
-        report.append("Friend Report for ").append(playerName).append("\n");
-        report.append("Total Friends: ").append(getFriends(playerName).size()).append("\n");
-        report.append("Online Friends: ").append(getOnlineFriends(playerName).size()).append("\n");
-        report.append("Favorite Friends: ").append(getFavoriteFriends(playerName).size()).append("\n");
-        report.append("Messages Sent: ").append(statsCache.getOrDefault(playerName, new FriendStatistics()).messagesSent).append("\n");
-        report.append("Games Played: ").append(statsCache.getOrDefault(playerName, new FriendStatistics()).gamesPlayed).append("\n");
-        return report.toString();
+    private void updateLastSeen(String playerName) {
+        FriendStatistics stats = statsCache.get(playerName);
+        if (stats != null) {
+            stats.isOnline = false; // Set to offline when updating last seen
+            stats.lastInteraction = System.currentTimeMillis(); // Update last interaction time
+        }
     }
 
-    // Clean up and save data when the plugin is disabled
-    public void onDisable() {
-        saveAllData();
+    public void loadData() {
+        // Implement logic to load data from files or database
+    }
+
+    public void initialize() {
+        connectToDatabase();
+        loadData();
+        startAutoSave();
+        startOnlineTracking();
     }
 }

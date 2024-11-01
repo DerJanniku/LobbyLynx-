@@ -1,6 +1,7 @@
 package org.derjannik.lobbyLynx;
 
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
@@ -11,6 +12,7 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 
+import java.io.File;
 import java.util.List;
 
 public class LobbyLynx extends JavaPlugin {
@@ -18,7 +20,7 @@ public class LobbyLynx extends JavaPlugin {
     private ConfigManager configManager;
     private CustomScoreboard customScoreboard;
     private CustomTablist customTablist;
-    private ServerSignManager serverSignManager; // Moved declaration here
+    private ServerSignManager serverSignManager;
     private boolean blockBreakingAllowed;
     private boolean blockPlacementAllowed;
     private boolean elytraAllowed;
@@ -32,17 +34,16 @@ public class LobbyLynx extends JavaPlugin {
         configManager = new ConfigManager(this);
         configManager.loadConfig();
 
-        //New Friend Manager
+        // New Friend Manager
         this.friendManager = new FriendManager(this);
         getCommand("friend").setExecutor(new org.derjannik.lobbyLynx.command.FriendCommand(this, friendManager));
 
-        // Add these lines after initializing friendManager
-        FriendGUI friendGUI = new FriendGUI(this, friendManager);
+        // Initialize FriendGUI
+        this.friendGUI = new FriendGUI(this, friendManager);
         getServer().getPluginManager().registerEvents(friendGUI, this);
+
         // Register FriendCommand
-        org.derjannik.lobbyLynx.command.FriendCommand friendCommand = new org.derjannik.lobbyLynx.command.FriendCommand(this, friendManager);
-        getCommand("friend").setExecutor(friendCommand);
-        getCommand("friend").setTabCompleter(friendCommand);
+
 
         // Initialize CustomScoreboard and CustomTablist
         customScoreboard = new CustomScoreboard(this, configManager);
@@ -143,8 +144,9 @@ public class LobbyLynx extends JavaPlugin {
     }
 
     public ServerSignManager getServerSignManager() {
-        return serverSignManager; // Added getter method
+        return serverSignManager;
     }
+
     public FriendManager getFriendManager() {
         return friendManager;
     }
@@ -216,6 +218,14 @@ public class LobbyLynx extends JavaPlugin {
 
     public boolean isElytraAllowed() {
         return this.elytraAllowed;
+    }
+
+    public FileConfiguration getStatsConfig() {
+        return getConfig(); // Assuming you want to return the main config for now
+    }
+
+    public File getStatsFile() {
+        return new File(getDataFolder(), "stats.yml"); // Assuming you want a stats.yml file
     }
 }
 
