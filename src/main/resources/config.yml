@@ -1,20 +1,151 @@
+
+# LobbyLynx Configuration
+
+# Navigator GUI settings
 navigator:
   gui:
     title: "Navigator"
-    size: 36
+    size: 45
+  lobby_spawn:
+    slot: 22
+    item: NETHER_STAR
+    world: "world"
+    x: 0.0
+    y: 90.0
+    z: 0.0
+  notifications:
+    welcome_message: "Welcome to the Lobby!"
+    new_players_only: true
+    always: true
   teleport_message:
     enabled: true
     text: "Teleporting to %minigame%..."
-  lobby_spawn:
-    slot: 0
-    item: "NETHER_STAR"
-    x: 0
-    y: 90
-    z: 0
-    world: "world"
-  notifications:
-    new_players_only: true
-    always: true
-    welcome_message: "Welcome to the Lobby!"
 
-minigames: {}  # Will be populated by commands
+# Gamerule GUI settings
+gamerule_gui:
+  title: "Game Rules"
+  size: 54
+
+# Settings GUI settings
+settings_gui:
+  title: "Settings"
+  size: 27
+
+# Lobby settings
+lobby_settings:
+  flight_enabled: false
+  double_jump_enabled: false
+  pvp_enabled: false
+  lobby_time: 6000
+
+# Game rules
+game_rules:
+  doTileDrops: true
+  doExpDrops: true
+  doDaylightCycle: true
+  doMobSpawning: false
+  naturalRegeneration: true
+  doFireTick: false
+  commandBlockOutput: false
+  doLimitedCrafting: false
+  randomTickSpeed: 3
+  sendCommandFeedback: true
+  keepInventory: true
+  mobGriefing: false
+  doMobLoot: true
+  doEntityDrops: true
+  doWeatherCycle: false
+  doImmediateRespawn: false
+  announceAdvancements: true
+  disableRaids: true
+  doInsomnia: false
+  drowningDamage: true
+  fallDamage: true
+  fireDamage: true
+  freezeDamage: true
+  doPatrolSpawning: false
+  doTraderSpawning: false
+  doWardenSpawning: false
+  forgiveDeadPlayers: true
+  universalAnger: false
+  showDeathMessages: true
+  spawnRadius: 0
+  spectatorsGenerateChunks: false
+  allowBlockBreaking: false
+  allowBlockPlacing: false
+  tnt: false
+  allowExplosions: false
+  allowPvp: false
+  alwaysDay: true
+  noWeather: true
+
+# Plugin settings
+plugin:
+  debug_mode: false
+
+# Minigames (example)
+minigames:
+  example_game:
+    name: "Example Game"
+    slot: 1
+    item: DIAMOND_SWORD
+    world: "world"
+    x: 100.0
+    y: 64.0
+    z: 100.0
+
+# Messages
+messages:
+  join: "&aWelcome to the server, %player%!"
+  quit: "&e%player% has left the server."
+
+# Velocity servers
+velocity-servers:
+  - "lobby"
+  - "survival"
+  - "creative"
+  - "minigames"
+
+# TeleportSigns Configuration
+teleport-signs:
+  sign1:
+    world: "world"
+    x: 0
+    y: 64
+    z: 0
+    destination: "survival"
+  sign2:
+    world: "world"
+    x: 10
+    y: 64
+    z: 10
+    destination: "creative"
+  sign3:
+    world: "world"
+    x: 20
+    y: 64
+    z: 20
+    destination: "minigames"
+
+# Destinations for TeleportSigns (for local teleports)
+destinations:
+  lobby_spawn:
+    world: "world"
+    x: 0.0
+    y: 90.0
+    z: 0.0
+    yaw: 0.0
+    pitch: 0.0
+
+# Tablist settings
+tablist:
+  header: "&6YourNetwork.net"
+  footer: "&ayourserver.com"
+
+# Scoreboard settings
+scoreboard:
+  title: "&eYourServer - Lobby"
+  lines:
+    - "&7Welcome to the lobby!"
+    - "&7Players online: &a%online_players%"
+    - "&7Your rank: &6%player_rank%"

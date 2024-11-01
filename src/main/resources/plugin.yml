@@ -1,29 +1,62 @@
+
 name: LobbyLynx
 version: '1.0-SNAPSHOT'
 main: org.derjannik.lobbyLynx.LobbyLynx
 api-version: '1.21'
 commands:
   lynx:
-    description: Main command for LobbyLynx
+    description: Main command for LobbyLynx (Admin only)
     usage: |
-      §6=== LobbyLynx Commands ===
+      §6=== LobbyLynx Admin Commands ===
+      §e/lynx navigator §f- Open navigator GUI
       §e/lynx settings §f- Open settings GUI
-      §e/lynx set minigame <name> <slot> <item> <x> <y> <z>
-      §e/lynx set lobbyspawn <slot> <item> <x> <y> <z>
+      §e/lynx gamerules §f- Open gamerules GUI
+      §e/lynx set minigame <name> <slot> <item> <x> <y> <z> <world>
+      §e/lynx set lobbyspawn <slot> <item> <x> <y> <z> <world>
       §e/lynx reload §f- Reload configuration
       §e/lynx help §f- Show detailed help
-    permission: lynx.use
+      §e/lynx bungeesign <server> §f- Links a sign to a BungeeCord server
+      §e/lynx bungeesign info §f- Displays info about the server linked to the sign
+      §e/lynx create bungeesign §f- Starts sign creation process
+    permission: lynx.admin
     aliases: [lobbylynx]
+  lobby:
+    description: Teleport to the lobby spawn
+    usage: /lobby
+    aliases: [hub, spawn]
+    permission: lynx.use
 
 permissions:
-  lynx.use:
-    description: Allows use of basic LobbyLynx commands
-    default: true
   lynx.admin:
     description: Grants access to all admin functionalities
     default: op
-    children:
-      lynx.use: true
-      lynx.set.minigame: true
-      lynx.set.lobbyspawn: true
-      lynx.reload: true
+  lynx.use:
+    description: Allows use of basic LobbyLynx commands (lobby, hub, spawn)
+    default: true
+  lynx.navigator:
+    description: Allows access to the navigator GUI
+    default: op
+  lynx.settings:
+    description: Allows access to the settings GUI
+    default: op
+  lynx.gamerules:
+    description: Allows access to the gamerules GUI
+    default: op
+  lynx.setminigame:
+    description: Allows setting minigame locations
+    default: op
+  lynx.setlobbyspawn:
+    description: Allows setting the lobby spawn location
+    default: op
+  lynx.reload:
+    description: Allows reloading the plugin configuration
+    default: op
+  lynx.teleportsigns.use:
+    description: Allows using TeleportSigns to teleport between servers
+    default: true
+  lynx.bungeesigns.admin:
+    description: Allows creating and managing BungeeSigns
+    default: op
+  lynx.bungeesigns.use:
+    description: Allows using BungeeSigns to connect to other servers
+    default: true

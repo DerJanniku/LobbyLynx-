@@ -1,6 +1,8 @@
+
 package org.derjannik.lobbyLynx;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -9,15 +11,20 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public class PlayerJoinListener implements Listener {
 
     private final LobbyLynx plugin;
     private final ConfigManager configManager;
+    private final CustomScoreboard customScoreboard;
+    private final CustomTablist customTablist;
 
-    public PlayerJoinListener(LobbyLynx plugin, ConfigManager configManager) {
+    public PlayerJoinListener(LobbyLynx plugin, ConfigManager configManager, CustomScoreboard customScoreboard, CustomTablist customTablist) {
         this.plugin = plugin;
         this.configManager = configManager;
+        this.customScoreboard = customScoreboard;
+        this.customTablist = customTablist;
     }
 
     @EventHandler
@@ -29,21 +36,33 @@ public class PlayerJoinListener implements Listener {
 
         // Create the Navigator item (a compass)
         ItemStack navigator = new ItemStack(Material.COMPASS);
-        navigator.getItemMeta().setDisplayName(configManager.getNavigatorName());
+        ItemMeta meta = navigator.getItemMeta();
+        meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', configManager.getNavigatorTitle()));
+        navigator.setItemMeta(meta);
 
         // Set the Navigator in the first hotbar slot
         player.getInventory().setItem(0, navigator);
 
         // Teleport the player to the lobby
-        double x = plugin.getConfig().getDouble("lobby.x");
-        double y = plugin.getConfig().getDouble("lobby.y");
-        double z = plugin.getConfig().getDouble("lobby.z");
-        player.teleport(new Location(Bukkit.getWorld("world"), x, y, z));
+        Location lobbyLocation = configManager.getLobbySpawn();
+        player.teleport(lobbyLocation);
 
-        // Send welcome message to new players only if enabled
-        if (plugin.getConfig().getBoolean("lobby.send-to-new-players-only")) {
-            player.sendMessage("Welcome to the Lobby!");
+        // Send welcome message
+        if (configManager.isNewPlayersOnly() && !player.hasPlayedBefore()) {
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', configManager.getWelcomeMessage()));
+        } else if (configManager.isAlwaysNotify()) {
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', configManager.getWelcomeMessage()));
         }
+
+        // Set join message
+        event.setJoinMessage(ChatColor.translateAlternateColorCodes('&',
+                configManager.getJoinMessage().replace("%player%", player.getName())));
+
+        // Set custom scoreboard
+        customScoreboard.setScoreboard(player);
+
+        // Set custom tablist
+        customTablist.setTablist(player);
     }
 
     @EventHandler
@@ -51,9 +70,9 @@ public class PlayerJoinListener implements Listener {
         // Check if the player right-clicked with the Navigator
         if (event.getItem() != null && event.getItem().getType() == Material.COMPASS
                 && event.getItem().getItemMeta() != null
-                && event.getItem().getItemMeta().getDisplayName().equals(configManager.getNavigatorName())) {
+                && event.getItem().getItemMeta().getDisplayName().equals(ChatColor.translateAlternateColorCodes('&', configManager.getNavigatorTitle()))) {
             // Open the GUI
-            new NavigatorGUI(plugin).openGUI(event.getPlayer());
+            new NavigatorGUI(plugin, configManager).openGUI(event.getPlayer());
         }
     }
 }

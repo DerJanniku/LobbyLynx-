@@ -1,43 +1,24 @@
+
 package org.derjannik.lobbyLynx;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-
-import java.io.File;
-import java.io.IOException;
 
 public class NavigatorCommand implements CommandExecutor {
 
-    private final JavaPlugin plugin;
-    private final FileConfiguration config;
+    private final LobbyLynx plugin;
+    private final ConfigManager configManager;
 
-    public NavigatorCommand(JavaPlugin plugin) {
+    public NavigatorCommand(LobbyLynx plugin, ConfigManager configManager) {
         this.plugin = plugin;
-        this.config = plugin.getConfig();  // Load the configuration
-        createConfigFile(); // Ensure the config file exists
-    }
-
-    // Ensure the navigator.yml exists
-    private void createConfigFile() {
-        try {
-            if (!plugin.getDataFolder().exists()) {
-                plugin.getDataFolder().mkdirs();
-            }
-            File configFile = new File(plugin.getDataFolder(), "navigator.yml");
-            if (!configFile.exists()) {
-                plugin.saveResource("navigator.yml", false); // Save default config if it doesn't exist
-            }
-        } catch (Exception e) {
-            plugin.getLogger().severe("Failed to create or load navigator.yml: " + e.getMessage());
-        }
+        this.configManager = configManager;
     }
 
     @Override
@@ -49,7 +30,12 @@ public class NavigatorCommand implements CommandExecutor {
 
         Player player = (Player) sender;
 
-        // Handle /lobby command
+        if (args.length == 0) {
+            new NavigatorGUI(plugin, configManager).openGUI(player);
+            return true;
+        }
+
+        // Handle /lynx lobby command
         if (args.length == 1 && args[0].equalsIgnoreCase("lobby")) {
             teleportToLobby(player);
             return true;
@@ -57,8 +43,12 @@ public class NavigatorCommand implements CommandExecutor {
 
         // Handle /lynx reload command
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
-            plugin.reloadConfig();
-            player.sendMessage("Configuration reloaded successfully.");
+            if (player.hasPermission("lynx.reload")) {
+                plugin.reloadNavigator();
+                player.sendMessage(ChatColor.GREEN + "Configuration reloaded successfully.");
+            } else {
+                player.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+            }
             return true;
         }
 
@@ -75,22 +65,22 @@ public class NavigatorCommand implements CommandExecutor {
     }
 
     private void teleportToLobby(Player player) {
-        double x = plugin.getConfig().getDouble("lobby.x");
-        double y = plugin.getConfig().getDouble("lobby.y");
-        double z = plugin.getConfig().getDouble("lobby.z");
+        double x = configManager.getLobbyX();
+        double y = configManager.getLobbyY();
+        double z = configManager.getLobbyZ();
+        String world = configManager.getLobbyWorld();
 
         // Start the teleport delay
         new BukkitRunnable() {
-            private int countdown = plugin.getConfig().getInt("lobby.teleport-delay");
+            private int countdown = 3; // You might want to add this to config
 
             @Override
             public void run() {
                 if (countdown <= 0) {
-                    // Check if the player is still online before teleporting
                     if (player.isOnline()) {
-                        player.teleport(new Location(Bukkit.getWorld("world"), x, y, z));
-                        if (plugin.getConfig().getBoolean("lobby.custom-teleport-message")) {
-                            player.sendMessage(plugin.getConfig().getString("lobby.custom-teleport-message"));
+                        player.teleport(new Location(Bukkit.getWorld(world), x, y, z));
+                        if (configManager.isTeleportMessageEnabled()) {
+                            player.sendMessage(ChatColor.translateAlternateColorCodes('&', configManager.getTeleportMessage()));
                         }
                     }
                     cancel();
@@ -98,96 +88,101 @@ public class NavigatorCommand implements CommandExecutor {
                 }
 
                 if (!player.isOnline() || hasPlayerMoved(player, x, y, z)) {
-                    player.sendMessage("Teleport cancelled due to movement.");
                     cancel();
                     return;
                 }
 
+                player.sendMessage(ChatColor.YELLOW + "Teleporting in " + countdown + " seconds...");
                 countdown--;
-                player.sendMessage("Teleporting to the lobby in " + countdown + " seconds...");
             }
-        }.runTaskTimer(plugin, 0, 20); // Run every second
+        }.runTaskTimer(plugin, 0L, 20L);
     }
 
     private boolean hasPlayerMoved(Player player, double x, double y, double z) {
-        return player.getLocation().getX() != x || player.getLocation().getY() != y || player.getLocation().getZ() != z;
+        Location playerLoc = player.getLocation();
+        return playerLoc.getX() != x || playerLoc.getY() != y || playerLoc.getZ() != z;
     }
 
     private boolean handleMinigameCommand(Player player, String[] args) {
-        if (!player.hasPermission("lynx.admin")) {
-            player.sendMessage("You do not have permission to use this command.");
-            return false;
+        if (args.length != 8) {
+            player.sendMessage(ChatColor.RED + "Usage: /lynx set minigame <name> <slot> <item> <x> <y> <z> <world>");
+            return true;
         }
 
-        if (args.length < 6) {
-            player.sendMessage("Usage: /lynx set minigame <minigame_name> <slot> <item_id/name> <x> <y> <z>");
-            return false;
+        String name = args[2];
+        int slot;
+        try {
+            slot = Integer.parseInt(args[3]);
+        } catch (NumberFormatException e) {
+            player.sendMessage(ChatColor.RED + "Invalid slot number.");
+            return true;
         }
 
-        String minigameName = args[2];
-        int slot = Integer.parseInt(args[3]);
-        Material material = Material.matchMaterial(args[4].toUpperCase());
-
-        if (material == null) {
-            player.sendMessage("Invalid item ID or name: " + args[4]);
-            return false;
+        Material item;
+        try {
+            item = Material.valueOf(args[4].toUpperCase());
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(ChatColor.RED + "Invalid item material.");
+            return true;
         }
 
         double x, y, z;
-        if (args.length >= 7) {
+        try {
             x = Double.parseDouble(args[5]);
             y = Double.parseDouble(args[6]);
             z = Double.parseDouble(args[7]);
-        } else {
-            x = player.getLocation().getX();
-            y = player.getLocation().getY();
-            z = player.getLocation().getZ();
+        } catch (NumberFormatException e) {
+            player.sendMessage(ChatColor.RED + "Invalid coordinates.");
+            return true;
         }
 
-        // Save the minigame configuration
-        config.set("minigames." + minigameName + ".slot", slot);
-        config.set("minigames." + minigameName + ".item", material.toString());
-        config.set("minigames." + minigameName + ".x", x);
-        config.set("minigames." + minigameName + ".y", y);
-        config.set("minigames." + minigameName + ".z", z);
+        String world = args[8];
 
-        try {
-            config.save(new File(plugin.getDataFolder(), "navigator.yml"));
-        } catch (IOException e) {
-            plugin.getLogger().severe("Failed to save navigator.yml: " + e.getMessage());
-        }
+        // Save minigame to config
+        configManager.setMinigame(name, slot, item.toString(), x, y, z, world);
+        player.sendMessage(ChatColor.GREEN + "Minigame " + name + " has been set.");
 
-        player.sendMessage("Minigame configuration saved successfully.");
         return true;
     }
 
     private boolean handleLobbySpawnCommand(Player player, String[] args) {
-        if (!player.hasPermission("lynx.admin")) {
-            player.sendMessage("You do not have permission to use this command.");
-            return false;
+        if (args.length != 7) {
+            player.sendMessage(ChatColor.RED + "Usage: /lynx set lobbyspawn <slot> <item> <x> <y> <z> <world>");
+            return true;
         }
 
-        if (args.length < 4) {
-            player.sendMessage("Usage: /lynx set lobbyspawn <x> <y> <z>");
-            return false;
-        }
-
-        double x = Double.parseDouble(args[2]);
-        double y = Double.parseDouble(args[3]);
-        double z = Double.parseDouble(args[4]);
-
-        // Save the lobby spawn configuration
-        config.set("lobby.x", x);
-        config.set("lobby.y", y);
-        config.set("lobby.z", z);
-
+        int slot;
         try {
-            config.save(new File(plugin.getDataFolder(), "navigator.yml"));
-        } catch (IOException e) {
-            plugin.getLogger().severe("Failed to save navigator.yml: " + e.getMessage());
+            slot = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            player.sendMessage(ChatColor.RED + "Invalid slot number.");
+            return true;
         }
 
-        player.sendMessage("Lobby spawn configuration saved successfully.");
+        Material item;
+        try {
+            item = Material.valueOf(args[3].toUpperCase());
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(ChatColor.RED + "Invalid item material.");
+            return true;
+        }
+
+        double x, y, z;
+        try {
+            x = Double.parseDouble(args[4]);
+            y = Double.parseDouble(args[5]);
+            z = Double.parseDouble(args[6]);
+        } catch (NumberFormatException e) {
+            player.sendMessage(ChatColor.RED + "Invalid coordinates.");
+            return true;
+        }
+
+        String world = args[7];
+
+        // Save lobby spawn to config
+        configManager.setLobbySpawn(slot, item.toString(), x, y, z, world);
+        player.sendMessage(ChatColor.GREEN + "Lobby spawn has been set.");
+
         return true;
     }
 }

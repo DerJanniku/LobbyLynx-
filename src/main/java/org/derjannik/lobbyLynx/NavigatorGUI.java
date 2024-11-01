@@ -1,10 +1,10 @@
+
 package org.derjannik.lobbyLynx;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -12,7 +12,6 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,139 +20,124 @@ import java.util.Map;
 
 public class NavigatorGUI implements Listener {
 
-    private final JavaPlugin plugin;
+    private final LobbyLynx plugin;
+    private final ConfigManager configManager;
     private final Map<String, Location> minigameLocations;
-    private final Map<String, String> minigamePermissions;
 
-    public NavigatorGUI(JavaPlugin plugin) {
+    public NavigatorGUI(LobbyLynx plugin, ConfigManager configManager) {
         this.plugin = plugin;
+        this.configManager = configManager;
         this.minigameLocations = new HashMap<>();
-        this.minigamePermissions = new HashMap<>();
         loadMinigameLocations();
     }
 
     private void loadMinigameLocations() {
-        ConfigurationSection minigamesSection = plugin.getConfig().getConfigurationSection("minigames");
-        if (minigamesSection == null) {
-            plugin.getLogger().warning("No minigames configured in config.yml");
-            return;
-        }
-
-        for (String minigameName : minigamesSection.getKeys(false)) {
-            ConfigurationSection minigameSection = minigamesSection.getConfigurationSection(minigameName);
-            if (minigameSection == null) {
-                plugin.getLogger().warning("Invalid configuration for minigame: " + minigameName);
-                continue;
-            }
-
-            // Load material
-            String materialName = minigameSection.getString("item");
-            Material material = (materialName != null) ? Material.matchMaterial(materialName) : null;
-
-            if (material == null) {
-                plugin.getLogger().warning("Invalid material for minigame: " + minigameName);
-                continue;
-            }
-
-            // Load location
-            String worldName = minigameSection.getString("world", "world");
-            double x = minigameSection.getDouble("x");
-            double y = minigameSection.getDouble("y");
-            double z = minigameSection.getDouble("z");
+        for (String minigameName : configManager.getMinigames()) {
+            String worldName = configManager.getMinigameWorld(minigameName);
+            double x = configManager.getMinigameX(minigameName);
+            double y = configManager.getMinigameY(minigameName);
+            double z = configManager.getMinigameZ(minigameName);
 
             Location location = new Location(Bukkit.getWorld(worldName), x, y, z);
             minigameLocations.put(minigameName, location);
-
-            // Load permission
-            String permission = minigameSection.getString("permission");
-            if (permission != null) {
-                minigamePermissions.put(minigameName, permission);
-            }
 
             plugin.getLogger().info("Loaded minigame: " + minigameName);
         }
     }
 
     public void openGUI(Player player) {
-        String title = ChatColor.translateAlternateColorCodes('&',
-                plugin.getConfig().getString("navigator.gui.title", "Navigator"));
-        int size = plugin.getConfig().getInt("navigator.gui.size", 9);
+        String title = ChatColor.translateAlternateColorCodes('&', configManager.getNavigatorTitle());
+        int size = configManager.getNavigatorSize();
 
         Inventory gui = Bukkit.createInventory(null, size, title);
 
-        for (Map.Entry<String, Location> entry : minigameLocations.entrySet()) {
-            String minigameName = entry.getKey();
-            ConfigurationSection minigameSection = plugin.getConfig().getConfigurationSection("minigames." + minigameName);
-            if (minigameSection == null) continue;
-
-            // Create item
-            Material material = Material.matchMaterial(minigameSection.getString("item", "STONE"));
-            if (material == null) material = Material.STONE;
-
-            ItemStack item = new ItemStack(material);
-            ItemMeta meta = item.getItemMeta();
-            if (meta != null) {
-                // Set name
-                meta.setDisplayName(ChatColor.translateAlternateColorCodes('&',
-                        minigameSection.getString("name", minigameName)));
-
-                // Set lore
-                List<String> lore = new ArrayList<>();
-                for (String loreLine : minigameSection.getStringList("description")) {
-                    loreLine = loreLine.replace("%players%",
-                            String.valueOf(Bukkit.getWorld(minigameSection.getString("world", "world"))
-                                    .getPlayers().size()));
-                    lore.add(ChatColor.translateAlternateColorCodes('&', loreLine));
-                }
-                meta.setLore(lore);
-                item.setItemMeta(meta);
+        for (String minigameName : configManager.getMinigames()) {
+            ItemStack item = createMinigameItem(minigameName);
+            int slot = configManager.getMinigameSlot(minigameName);
+            if (slot >= 0 && slot < size) {
+                gui.setItem(slot, item);
             }
-
-            int slot = minigameSection.getInt("slot", 0);
-            gui.setItem(slot, item);
         }
+
+        // Add lobby spawn item
+        ItemStack lobbyItem = createLobbyItem();
+        gui.setItem(configManager.getLobbySpawnSlot(), lobbyItem);
 
         player.openInventory(gui);
     }
 
+    private ItemStack createMinigameItem(String minigameName) {
+        Material material = Material.matchMaterial(configManager.getMinigameItem(minigameName));
+        if (material == null) material = Material.STONE;
+
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', configManager.getMinigameName(minigameName)));
+
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Click to teleport!");
+            meta.setLore(lore);
+
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack createLobbyItem() {
+        Material material = Material.matchMaterial(configManager.getLobbySpawnItem());
+        if (material == null) material = Material.NETHER_STAR;
+
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GREEN + "Lobby");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Click to return to lobby!");
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!event.getView().getTitle().equals(
-                ChatColor.translateAlternateColorCodes('&',
-                        plugin.getConfig().getString("navigator.gui.title", "Navigator")))) {
-            return;
+        if (event.getView().getTitle().equals(ChatColor.translateAlternateColorCodes('&', configManager.getNavigatorTitle()))) {
+            event.setCancelled(true);
+            if (event.getCurrentItem() == null) return;
+
+            Player player = (Player) event.getWhoClicked();
+            ItemStack clickedItem = event.getCurrentItem();
+
+            if (clickedItem.getItemMeta() == null) return;
+
+            String itemName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
+
+            if (itemName.equals("Lobby")) {
+                // Teleport to lobby
+                Location lobbyLocation = new Location(
+                        Bukkit.getWorld(configManager.getLobbyWorld()),
+                        configManager.getLobbyX(),
+                        configManager.getLobbyY(),
+                        configManager.getLobbyZ()
+                );
+                player.teleport(lobbyLocation);
+                player.sendMessage(ChatColor.GREEN + "Teleported to Lobby!");
+            } else {
+                // Check if it's a minigame
+                Location minigameLocation = minigameLocations.get(itemName);
+                if (minigameLocation != null) {
+                    player.teleport(minigameLocation);
+                    player.sendMessage(ChatColor.GREEN + "Teleported to " + itemName + "!");
+                }
+            }
+
+            player.closeInventory();
         }
+    }
 
-        event.setCancelled(true);
-        Player player = (Player) event.getWhoClicked();
-        ItemStack clickedItem = event.getCurrentItem();
-
-        if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
-
-        ItemMeta meta = clickedItem.getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) return;
-
-        String itemName = ChatColor.stripColor(meta.getDisplayName());
-
-        // Check permission
-        String permission = minigamePermissions.get(itemName);
-        if (permission != null && !player.hasPermission(permission)) {
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    plugin.getConfig().getString("navigator.messages.no-permission",
-                            "&cYou don't have permission to use this!")));
-            return;
-        }
-
-        Location location = minigameLocations.get(itemName);
-        if (location != null) {
-            player.teleport(location);
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    plugin.getConfig().getString("navigator.messages.teleport-success", "&aTeleported!")
-                            .replace("%minigame%", itemName)));
-        } else {
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    plugin.getConfig().getString("navigator.messages.teleport-error",  "&cCould not teleport!")
-                            .replace("%minigame%", itemName)));
-        }
+    public void reloadGUI() {
+        minigameLocations.clear();
+        loadMinigameLocations();
     }
 }
