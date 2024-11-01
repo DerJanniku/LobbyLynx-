@@ -38,8 +38,69 @@ public class ConfigManager {
         return config.getBoolean("lobby_settings.flight_enabled", false);
     }
 
+    // Retrieve the sign format for server signs
+    public List<String> getSignFormat() {
+        List<String> format = config.getStringList("server-signs.format");
+        if (format.isEmpty()) {
+            format.add("&8[&bServer&8]");
+            format.add("%server%");
+            format.add("%players%/%maxplayers%");
+            format.add("&aClick to join!");
+        }
+        return format;
+    }
 
-    // Game rules
+    // Retrieve animation frames for server signs
+    public List<List<String>> getAnimationFrames() {
+        List<List<String>> frames = new ArrayList<>();
+        List<String> rawFrames = config.getStringList("server-signs.animation-frames");
+        for (String frame : rawFrames) {
+            frames.add(List.of(frame.split("\\|")));
+        }
+        return frames;
+    }
+
+    // Retrieve the list of configured server names
+    public List<String> getServerNames() {
+        ConfigurationSection serversSection = config.getConfigurationSection("server-signs.servers");
+        if (serversSection != null) {
+            return new ArrayList<>(serversSection.getKeys(false));
+        }
+        return new ArrayList<>();
+    }
+
+    // Retrieve information for a specific server sign location
+    public Location getServerSignLocation(String server, String signKey) {
+        ConfigurationSection signSection = config.getConfigurationSection("server-signs.servers." + server + ".signs." + signKey);
+        if (signSection != null) {
+            World world = plugin.getServer().getWorld(signSection.getString("world"));
+            if (world != null) {
+                double x = signSection.getDouble("x");
+                double y = signSection.getDouble("y");
+                double z = signSection.getDouble("z");
+                return new Location(world, x, y, z);
+            }
+        }
+        return null;
+    }
+
+    // Save a new server sign location in the config
+    public void saveServerSign(String server, String signKey, Location location) {
+        String path = "server-signs.servers." + server + ".signs." + signKey;
+        config.set(path + ".world", location.getWorld().getName());
+        config.set(path + ".x", location.getX());
+        config.set(path + ".y", location.getY());
+        config.set(path + ".z", location.getZ());
+        plugin.saveConfig();
+    }
+
+    // Remove a server sign from the config
+    public void removeServerSign(String server, String signKey) {
+        config.set("server-signs.servers." + server + ".signs." + signKey, null);
+        plugin.saveConfig();
+    }
+
+    // Default Game Rules configuration (existing methods)
     public void setDefaultGameRules() {
         ConfigurationSection gameRulesSection = config.getConfigurationSection("game_rules");
         if (gameRulesSection == null) {
@@ -76,25 +137,29 @@ public class ConfigManager {
         plugin.saveConfig();
     }
 
+    // Game rules and additional settings for lobby and minigame (existing methods)
+    // ... [additional methods for retrieving various lobby and minigame settings] ...
+
+
     public void applyGameRules() {
-        for (World world : plugin.getServer().getWorlds()) {
-            for (GameRule<?> rule : GameRule.values()) {
-                String ruleName = rule.getName().toLowerCase();
-                if (config.contains("game_rules." + ruleName)) {
-                    if (rule.getType() == Boolean.class) {
-                        @SuppressWarnings("unchecked")
-                        GameRule<Boolean> booleanRule = (GameRule<Boolean>) rule;
-                        world.setGameRule(booleanRule, getGameRule(ruleName));
-                    } else if (rule.getType() == Integer.class) {
-                        @SuppressWarnings("unchecked")
-                        GameRule<Integer> intRule = (GameRule<Integer>) rule;
-                        world.setGameRule(intRule, getGameRuleInt(ruleName));
+            for (World world : plugin.getServer().getWorlds()) {
+                for (GameRule<?> rule : GameRule.values()) {
+                    String ruleName = rule.getName().toLowerCase();
+                    if (config.contains("game_rules." + ruleName)) {
+                        if (rule.getType() == Boolean.class) {
+                            @SuppressWarnings("unchecked")
+                            GameRule<Boolean> booleanRule = (GameRule<Boolean>) rule;
+                            world.setGameRule(booleanRule, getGameRule(ruleName));
+                        } else if (rule.getType() == Integer.class) {
+                            @SuppressWarnings("unchecked")
+                            GameRule<Integer> intRule = (GameRule<Integer>) rule;
+                            world.setGameRule(intRule, getGameRuleInt(ruleName));
+                        }
                     }
                 }
+                // Apply custom rules
+                applyCustomRules(world);
             }
-            // Apply custom rules
-            applyCustomRules(world);
-        }
     }
 
     private void applyCustomRules(World world) {
