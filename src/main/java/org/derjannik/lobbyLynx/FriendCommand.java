@@ -427,16 +427,23 @@ public class FriendCommand implements CommandExecutor, TabCompleter {
                 }
                 boolean enabled = args[2].equalsIgnoreCase("on");
                 friendManager.toggleFriendNotifications(player.getName(), enabled);
+                player.sendMessage(ChatColor.GREEN + "Friend notifications " + (enabled ? "enabled" : "disabled"));
                 break;
+
             case "privacy":
                 if (args.length < 3) {
                     player.sendMessage(ChatColor.RED + "Usage: /friend settings privacy <public/friends/private>");
                     return;
                 }
-                FriendManager.PrivacyLevel level = FriendManager.PrivacyLevel.valueOf(args[2].toUpperCase());
-                friendManager.setPrivacyLevel(player.getName(), level);
-                player.sendMessage(ChatColor.GREEN + "Privacy level set to " + level);
+                try {
+                    PrivacyLevel level = PrivacyLevel.valueOf(args[2].toUpperCase());
+                    friendManager.setPrivacyLevel(player.getName(), level);
+                    player.sendMessage(ChatColor.GREEN + "Privacy level set to " + level);
+                } catch (IllegalArgumentException e) {
+                    player.sendMessage(ChatColor.RED + "Unknown privacy level. Use public, friends, or private.");
+                }
                 break;
+
             case "lastseen":
                 if (args.length < 3) {
                     player.sendMessage(ChatColor.RED + "Usage: /friend settings lastSeen <on/off>");
@@ -446,6 +453,7 @@ public class FriendCommand implements CommandExecutor, TabCompleter {
                 friendManager.setShowLastSeen(player.getName(), showLastSeen);
                 player.sendMessage(ChatColor.GREEN + "Last seen visibility set to " + (showLastSeen ? "on" : "off"));
                 break;
+
             default:
                 player.sendMessage(ChatColor.RED + "Unknown setting option. Use notifications, privacy, or lastSeen.");
         }

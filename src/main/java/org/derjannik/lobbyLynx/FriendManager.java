@@ -210,21 +210,62 @@ public class FriendManager {
     }
 
     public void unblockPlayer(String name, String targetName) {
+        Set<String> blocked = blockedPlayers.computeIfAbsent(name, k -> new HashSet<>());
+        if (blocked.remove(targetName)) {
+            notifyPlayer(name, ChatColor.GREEN + "You have unblocked " + targetName);
+        } else {
+            notifyPlayer(name, ChatColor.RED + targetName + " is not in your blocked list.");
+        }
     }
 
     public void blockPlayer(String name, String targetName) {
+        Set<String> blocked = blockedPlayers.computeIfAbsent(name, k -> new HashSet<>());
+        if (blocked.add(targetName)) {
+            notifyPlayer(name, ChatColor.GREEN + "You have blocked " + targetName);
+        } else {
+            notifyPlayer(name, ChatColor.RED + targetName + " is already in your blocked list.");
+        }
     }
 
     public void sendMessage(String name, String targetName, String message) {
+        if (!areFriends(name, targetName)) {
+            notifyPlayer(name, ChatColor.RED + "You can only send messages to your friends!");
+            return;
+        }
+
+        PrivacySettings receiverSettings = privacySettings.get(targetName);
+        if (receiverSettings != null && !receiverSettings.allowMessages) {
+            notifyPlayer(name, ChatColor.RED + "This player is not accepting messages right now.");
+            return;
+        }
+
+        String formattedMessage = ChatColor.GOLD + "[Friend] " +
+                ChatColor.YELLOW + name +
+                ChatColor.WHITE + ": " + message;
+
+        notifyPlayer(targetName, formattedMessage);
+        notifyPlayer(name, formattedMessage);
+
+        // Update statistics
+        FriendStatistics stats = statsCache.computeIfAbsent(name, k -> new FriendStatistics());
+        stats.messagesSent++;
+        stats.lastInteraction = System.currentTimeMillis();
     }
 
     public void setShowLastSeen(String name, boolean showLastSeen) {
+        PrivacySettings settings = privacySettings.computeIfAbsent(name, k -> new PrivacySettings());
+        settings.showLastSeen = showLastSeen;
+        notifyPlayer(name, ChatColor.GREEN + "Last seen visibility set to " + (showLastSeen ? "on" : "off"));
     }
 
     public void setPrivacyLevel(String name, PrivacyLevel level) {
+        PrivacySettings settings = privacySettings.computeIfAbsent(name, k -> new PrivacySettings());
+        settings.privateMode = (level == PrivacyLevel.PRIVATE);
+        notifyPlayer(name, ChatColor.GREEN + "Privacy level set to " + (settings.privateMode ? "private" : "public"));
     }
 
-    public Map<Object, Object> getBlockedPlayers(String playerName) {
+    public Set<String> getBlockedPlayers(String playerName) {
+        return blockedPlayers.getOrDefault(playerName, new HashSet<>());
     }
 
     // Friend Statistics Management
@@ -719,8 +760,5 @@ public class FriendManager {
     // Clean up and save data when the plugin is disabled
     public void onDisable() {
         saveAllData();
-    }
-
-    public class PrivacyLevel {
     }
 }
