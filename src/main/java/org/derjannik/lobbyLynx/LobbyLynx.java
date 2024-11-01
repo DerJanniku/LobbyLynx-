@@ -3,14 +3,23 @@ package org.derjannik.lobbyLynx;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.event.Listener;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.EntityToggleGlideEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.TNTPrimed;
+import org.derjannik.lobbyLynx.commands.CommonCommands;
+import org.derjannik.lobbyLynx.commands.FriendCommand;
+import org.derjannik.lobbyLynx.commands.LynxCommand;
+import org.derjannik.lobbyLynx.gui.FriendGUI;
+import org.derjannik.lobbyLynx.gui.GameruleGUI;
+import org.derjannik.lobbyLynx.gui.NavigatorGUI;
+import org.derjannik.lobbyLynx.gui.SettingsGUI;
+import org.derjannik.lobbyLynx.listeners.CustomRuleListener;
+import org.derjannik.lobbyLynx.listeners.PlayerJoinListener;
+import org.derjannik.lobbyLynx.listeners.PlayerQuitListener;
+import org.derjannik.lobbyLynx.listeners.TNTExplosionListener;
+import org.derjannik.lobbyLynx.managers.ConfigManager;
+import org.derjannik.lobbyLynx.managers.FriendManager;
+import org.derjannik.lobbyLynx.managers.HatManager;
+import org.derjannik.lobbyLynx.managers.ServerSignManager;
+import org.derjannik.lobbyLynx.scoreboard.CustomScoreboard;
+import org.derjannik.lobbyLynx.scoreboard.CustomTablist;
 
 import java.io.File;
 import java.util.List;
@@ -27,6 +36,7 @@ public class LobbyLynx extends JavaPlugin {
     private boolean tntExplosionsAllowed;
     private FriendManager friendManager;
     private FriendGUI friendGUI;
+    private HatManager hatManager;
 
     @Override
     public void onEnable() {
@@ -34,9 +44,12 @@ public class LobbyLynx extends JavaPlugin {
         configManager = new ConfigManager(this);
         configManager.loadConfig();
 
+        this.hatManager = new HatManager(this);
+
+
         // New Friend Manager
         this.friendManager = new FriendManager(this);
-        getCommand("friend").setExecutor(new org.derjannik.lobbyLynx.FriendCommand(this, friendManager));
+        getCommand("friend").setExecutor(new FriendCommand(this, friendManager));
 
         // Initialize FriendGUI
         this.friendGUI = new FriendGUI(this, friendManager);
@@ -91,7 +104,7 @@ public class LobbyLynx extends JavaPlugin {
     }
 
     private void registerEventListeners() {
-        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, configManager, customScoreboard, customTablist), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, configManager, customScoreboard, customTablist, friendGUI), this);
         getServer().getPluginManager().registerEvents(new PlayerQuitListener(this, configManager), this);
         getServer().getPluginManager().registerEvents(new SettingsGUI(this, configManager), this);
         getServer().getPluginManager().registerEvents(new GameruleGUI(this, configManager), this);
@@ -220,6 +233,10 @@ public class LobbyLynx extends JavaPlugin {
         return this.elytraAllowed;
     }
 
+    public HatManager getHatManager() {
+        return hatManager;
+    }
+
     public FileConfiguration getStatsConfig() {
         return getConfig(); // Assuming you want to return the main config for now
     }
@@ -229,49 +246,3 @@ public class LobbyLynx extends JavaPlugin {
     }
 }
 
-class CustomRuleListener implements Listener {
-    private final LobbyLynx plugin;
-
-    public CustomRuleListener(LobbyLynx plugin) {
-        this.plugin = plugin;
-    }
-
-    @EventHandler
-    public void onBlockBreak(BlockBreakEvent event) {
-        if (!plugin.isBlockBreakingAllowed()) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onBlockPlace(BlockPlaceEvent event) {
-        if (!plugin.isBlockPlacementAllowed()) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onPlayerToggleGlide(EntityToggleGlideEvent event) {
-        if (event.getEntity() instanceof Player && !plugin.isElytraAllowed()) {
-            event.setCancelled(true);
-            if (event.isGliding()) {
-                ((Player) event.getEntity()).setGliding(false);
-            }
-        }
-    }
-}
-
-class TNTExplosionListener implements Listener {
-    private final LobbyLynx plugin;
-
-    public TNTExplosionListener(LobbyLynx plugin) {
-        this.plugin = plugin;
-    }
-
-    @EventHandler
-    public void onEntityExplode(EntityExplodeEvent event) {
-        if (event.getEntity() instanceof TNTPrimed && !plugin.areTNTExplosionsAllowed()) {
-            event.setCancelled(true);
-        }
-    }
-}

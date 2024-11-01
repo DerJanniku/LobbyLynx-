@@ -143,3 +143,21 @@ scoreboard:
     - "&7Welcome to the lobby!"
     - "&7Players online: &a%online_players%"
     - "&7Your rank: &6%player_rank%"
+# Hat settings
+hats:
+  enabled: true
+  default_hat: "default"
+  permission_required: true
+  available_hats:
+    default:
+      material: LEATHER_HELMET
+      display_name: "&6Default Hat"
+      permission: "lobbylynx.hat.default"
+    gold:
+      material: GOLDEN_HELMET
+      display_name: "&6Golden Hat"
+      permission: "lobbylynx.hat.gold"
+    diamond:
+      material: DIAMOND_HELMET
+      display_name: "&bDiamond Hat"
+      permission: "lobbylynx.hat.diamond"

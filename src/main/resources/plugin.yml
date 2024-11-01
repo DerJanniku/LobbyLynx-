@@ -63,3 +63,9 @@ permissions:
   lynx.friend.use:
     description: Allows use of the friend system
     default: true
+  lobbylynx.friend.teleport:
+    description: Allows teleporting to friends
+    default: true
+  lobbylynx.friend.manage:
+    description: Allows managing friends
+    default: true
