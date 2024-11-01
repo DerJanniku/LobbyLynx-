@@ -14,9 +14,7 @@ commands:
       §e/lynx set lobbyspawn <slot> <item> <x> <y> <z> <world>
       §e/lynx reload §f- Reload configuration
       §e/lynx help §f- Show detailed help
-      §e/lynx bungeesign <server> §f- Links a sign to a BungeeCord server
-      §e/lynx bungeesign info §f- Displays info about the server linked to the sign
-      §e/lynx create bungeesign §f- Starts sign creation process
+      §e/lynx serversign <create|remove> [server] §f- Manage server signs
     permission: lynx.admin
     aliases: [lobbylynx]
   lobby:
@@ -50,12 +48,9 @@ permissions:
   lynx.reload:
     description: Allows reloading the plugin configuration
     default: op
-  lynx.teleportsigns.use:
-    description: Allows using TeleportSigns to teleport between servers
-    default: true
-  lynx.bungeesigns.admin:
-    description: Allows creating and managing BungeeSigns
+  lynx.serversigns.admin:
+    description: Allows creation and removal of server signs
     default: op
-  lynx.bungeesigns.use:
-    description: Allows using BungeeSigns to connect to other servers
+  lynx.serversigns.use:
+    description: Allows usage of server signs
     default: true

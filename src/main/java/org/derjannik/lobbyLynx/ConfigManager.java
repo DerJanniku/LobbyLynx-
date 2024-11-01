@@ -5,11 +5,19 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ConfigManager {
+public class ConfigManager implements Listener {
     private final LobbyLynx plugin;
     private FileConfiguration config;
 
@@ -113,7 +121,7 @@ public class ConfigManager {
         gameRulesSection.addDefault("tnt", false);
         gameRulesSection.addDefault("mobGriefing", false);
         gameRulesSection.addDefault("doDaylightCycle", false);
-        gameRulesSection.addDefault("doWeatherCycle", false);
+        gameRulesSection.addDefault ("doWeatherCycle", false);
         gameRulesSection.addDefault("keepInventory", true);
         gameRulesSection.addDefault("naturalRegeneration", false);
         gameRulesSection.addDefault("disableElytra", true);
@@ -140,26 +148,25 @@ public class ConfigManager {
     // Game rules and additional settings for lobby and minigame (existing methods)
     // ... [additional methods for retrieving various lobby and minigame settings] ...
 
-
     public void applyGameRules() {
-            for (World world : plugin.getServer().getWorlds()) {
-                for (GameRule<?> rule : GameRule.values()) {
-                    String ruleName = rule.getName().toLowerCase();
-                    if (config.contains("game_rules." + ruleName)) {
-                        if (rule.getType() == Boolean.class) {
-                            @SuppressWarnings("unchecked")
-                            GameRule<Boolean> booleanRule = (GameRule<Boolean>) rule;
-                            world.setGameRule(booleanRule, getGameRule(ruleName));
-                        } else if (rule.getType() == Integer.class) {
-                            @SuppressWarnings("unchecked")
-                            GameRule<Integer> intRule = (GameRule<Integer>) rule;
-                            world.setGameRule(intRule, getGameRuleInt(ruleName));
-                        }
+        for (World world : plugin.getServer().getWorlds()) {
+            for (GameRule<?> rule : GameRule.values()) {
+                String ruleName = rule.getName().toLowerCase();
+                if (config.contains("game_rules." + ruleName)) {
+                    if (rule.getType() == Boolean.class) {
+                        @SuppressWarnings("unchecked")
+                        GameRule<Boolean> booleanRule = (GameRule<Boolean>) rule;
+                        world.setGameRule(booleanRule, getGameRule(ruleName));
+                    } else if (rule.getType() == Integer.class) {
+                        @SuppressWarnings("unchecked")
+                        GameRule<Integer> intRule = (GameRule<Integer>) rule;
+                        world.setGameRule(intRule, getGameRuleInt(ruleName));
                     }
                 }
-                // Apply custom rules
-                applyCustomRules(world);
             }
+            // Apply custom rules
+            applyCustomRules(world);
+        }
     }
 
     private void applyCustomRules(World world) {
@@ -225,6 +232,7 @@ public class ConfigManager {
     public long getLobbyTime() {
         return config.getLong("lobby_settings.time", 6000); // Default to 6000 if not set
     }
+
     private Integer getGameRuleInt(String ruleName) {
         return config.getInt("game_rules." + ruleName, 0); // Default to 0 if not set
     }
@@ -236,83 +244,6 @@ public class ConfigManager {
 
     public int getNavigatorSize() {
         return config.getInt("navigator.gui.size", 45);
-    }
-
-    public int getLobbySpawnSlot() {
-        return config.getInt("navigator.lobby_spawn.slot", 22);
-    }
-
-    public String getLobbySpawnItem() {
-        return config.getString("navigator.lobby_spawn.item", "NETHER_STAR");
-    }
-
-    public String getLobbyWorld() {
-        return config.getString("navigator.lobby_spawn.world", "world");
-    }
-
-    public double getLobbyX() {
-        return config.getDouble("navigator.lobby_spawn.x", 0.0);
-    }
-
-    public double getLobbyY() {
-        return config.getDouble("navigator.lobby_spawn.y", 90.0);
-    }
-
-    public double getLobbyZ() {
-        return config.getDouble("navigator.lobby_spawn.z", 0.0);
-    }
-
-    public String getWelcomeMessage() {
-        return config.getString("navigator.notifications.welcome_message", "Welcome to the Lobby!");
-    }
-
-    public boolean isNewPlayersOnly() {
-        return config.getBoolean("navigator.notifications.new_players_only", true);
-    }
-
-    public boolean isAlwaysNotify() {
-        return config.getBoolean("navigator.notifications.always", true);
-    }
-
-    public boolean isTeleportMessageEnabled() {
-        return config.getBoolean("navigator.notifications.teleport_message_enabled", true);
-    }
-
-    public String getTeleportMessage() {
-        return config.getString("navigator.notifications.teleport_message", "Teleported to %server%");
-    }
-
-    public List<String> getNavigatorItems() {
-        return config.getStringList("navigator.items");
-    }
-
-    public String getNavigatorItemName(String item) {
-        return config.getString("navigator.items." + item + ".name", item);
-    }
-
-    public String getNavigatorItemMaterial(String item) {
-        return config.getString("navigator.items." + item + ".material", "STONE");
-    }
-
-    public int getNavigatorItemSlot(String item) {
-        return config.getInt("navigator.items." + item + ".slot", 0);
-    }
-
-    public String getNavigatorItemServer(String item) {
-        return config.getString("navigator.items." + item + ".server", "");
-    }
-
-    public List<String> getNavigatorItemLore(String item) {
-        return config.getStringList("navigator.items." + item + ".lore");
-    }
-
-    // Gamerule GUI settings
-    public String getGameruleTitle() {
-        return config.getString("gamerule_gui.title", "Game Rules");
-    }
-
-    public int getGameruleSize() {
-        return config.getInt("gamerule_gui.size", 54);
     }
 
     // Settings GUI settings
@@ -359,6 +290,26 @@ public class ConfigManager {
 
     public double getMinigameZ(String minigame) {
         return config.getDouble("minigames." + minigame + ".z", 100.0);
+    }
+
+    public List<String> getServerSignFormat() {
+        return getConfig().getStringList("server-signs.format");
+    }
+
+    public int getServerSignUpdateInterval() {
+        return getConfig().getInt("server-signs.update-interval", 20);
+    }
+
+    public long getServerSignCooldown() {
+        return getConfig().getLong("server-signs.cooldown", 3000);
+    }
+
+    public List<String> getServerSignAnimationFrames() {
+        return getConfig().getStringList("server-signs.animation-frames");
+    }
+
+    public ConfigurationSection getServerSignsSection() {
+        return getConfig().getConfigurationSection("server-signs.servers");
     }
 
     // Messages
@@ -417,5 +368,52 @@ public class ConfigManager {
             world = plugin.getServer().getWorlds().get(0); // Fallback to the first world if the specified one is not found
         }
         return new Location(world, getLobbyX(), getLobbyY(), getLobbyZ());
+    }
+
+    @EventHandler
+    public void onEntityExplode(EntityExplodeEvent event) {
+        // Check if the entity causing the explosion is TNT and if TNT explosions are disabled
+        if (event.getEntity() instanceof TNTPrimed && !plugin.areTNTExplosionsAllowed()) {
+            event.setCancelled(true);
+            plugin.getLogger().info("TNT explosion prevented in world: " + event.getLocation().getWorld().getName());
+        }
+    }
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        // Check if block breaking is allowed in the lobby, cancel event if not
+        if (!plugin.isBlockBreakingAllowed()) {
+            event.setCancelled(true);
+            Player player = event.getPlayer();
+            player.sendMessage("§cBlock breaking is disabled in this lobby.");
+            plugin.getLogger().info("Prevented " + player.getName() + " from breaking blocks in restricted area.");
+        }
+    }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        // Check if block placement is allowed in the lobby, cancel event if not
+        if (!plugin.isBlockPlacementAllowed()) {
+            event.setCancelled(true);
+            Player player = event.getPlayer();
+            player.sendMessage("§cBlock placement is disabled in this lobby.");
+            plugin.getLogger().info("Prevented " + player.getName() + " from placing blocks in restricted area.");
+        }
+    }
+
+    @EventHandler
+    public void onPlayerToggleGlide(EntityToggleGlideEvent event) {
+        // Check if the entity is a player and if Elytra usage is disallowed in the lobby
+        if (event.getEntity() instanceof Player) {
+            Player player = (Player) event.getEntity();
+            if (!plugin.isElytraAllowed()) {
+                event.setCancelled(true);
+                if (event.isGliding()) {
+                    player.setGliding(false);
+                }
+                player.sendMessage("§cElytra usage is disabled in this lobby.");
+                plugin.getLogger().info("Prevented " + player.getName() + " from using Elytra in restricted area.");
+            }
+        }
     }
 }

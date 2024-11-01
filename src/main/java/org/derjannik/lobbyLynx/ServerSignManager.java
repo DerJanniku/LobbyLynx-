@@ -12,9 +12,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -27,7 +29,6 @@ public class ServerSignManager implements Listener {
     private final List<String> signFormat;
     private final Map<String, ServerInfo> serverInfoCache = new ConcurrentHashMap<>();
     private final Map<Player, Long> cooldowns = new HashMap<>();
-
     private final List<List<String>> animationFrames = new ArrayList<>();
     private int currentFrame = 0;
 
@@ -70,8 +71,23 @@ public class ServerSignManager implements Listener {
                     if (signsSection != null) {
                         for (String key : signsSection.getKeys(false)) {
                             ConfigurationSection signSection = signsSection.getConfigurationSection(key);
+
+                            // Get the world name from config and check if the world is loaded
+                            String worldName = signSection.getString("world");
+                            if (worldName == null) {
+                                plugin.getLogger().warning("World name is missing in config for server sign at key: " + key);
+                                continue;
+                            }
+
+                            var world = Bukkit.getWorld(worldName);
+                            if (world == null) {
+                                plugin.getLogger().warning("World '" + worldName + "' is not loaded or does not exist for sign at key: " + key);
+                                continue;
+                            }
+
+                            // Proceed to create Location and ServerSign
                             Location loc = new Location(
-                                    Bukkit.getWorld(signSection.getString("world")),
+                                    world,
                                     signSection.getDouble("x"),
                                     signSection.getDouble("y"),
                                     signSection.getDouble("z")
@@ -84,21 +100,33 @@ public class ServerSignManager implements Listener {
         }
     }
 
+
     private void startSignUpdater() {
         int updateInterval = configManager.getConfig().getInt("server-signs.update-interval", 20);
+
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+            // Update server information asynchronously
             for (ServerSign sign : serverSigns.values()) {
                 updateServerInfo(sign);
             }
-            animateSigns(animationFrames);
+
+            // Schedule the animation and sign display update on the main thread
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                animateSigns(animationFrames);
+            });
         }, 0L, updateInterval);
     }
 
     void animateSigns(List<List<String>> animationFrames) {
         if (this.animationFrames.isEmpty()) return;
+
         currentFrame = (currentFrame + 1) % this.animationFrames.size();
         for (Map.Entry<Location, ServerSign> entry : serverSigns.entrySet()) {
-            updateSignDisplay(entry.getValue(), entry.getKey(), this.animationFrames.get(currentFrame));
+            Location location = entry.getKey();
+            ServerSign sign = entry.getValue();
+
+            // Update sign display on the main thread
+            updateSignDisplay(sign, location, this.animationFrames.get(currentFrame));
         }
     }
 
@@ -116,11 +144,8 @@ public class ServerSignManager implements Listener {
         sign.setMotd(cachedInfo.motd);
     }
 
-    // Update server information from the main plugin
     public void updateServerInfo(String serverName, int onlinePlayers, int maxPlayers, String motd) {
         serverInfoCache.put(serverName, new ServerInfo(onlinePlayers, maxPlayers, motd));
-
-        // Update relevant signs with the new info
         for (Map.Entry<Location, ServerSign> entry : serverSigns.entrySet()) {
             ServerSign sign = entry.getValue();
             if (sign.getServerName().equals(serverName)) {
@@ -134,19 +159,22 @@ public class ServerSignManager implements Listener {
 
     private void updateSignDisplay(ServerSign sign, Location loc, List<String> frame) {
         Block block = loc.getBlock();
-        if (block.getState() instanceof Sign) {
-            Sign bukkitSign = (Sign) block.getState();
-            for (int i = 0; i < frame.size() && i < 4; i++) {
-                String line = ChatColor.translateAlternateColorCodes('&', frame.get(i)
-                        .replace("%server%", sign.getDisplayName())
-                        .replace("%players%", String.valueOf(sign.getOnlinePlayers()))
-                        .replace("%maxplayers%", String.valueOf(sign.getMaxPlayers()))
-                        .replace("%motd%", sign.getMotd()));
-                bukkitSign.setLine(i, line);
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (block.getState() instanceof Sign bukkitSign) {
+                for (int i = 0; i < frame.size() && i < 4; i++) {
+                    String line = ChatColor.translateAlternateColorCodes('&', frame.get(i)
+                            .replace("%server%", Optional.ofNullable(sign.getDisplayName()).orElse("Unknown"))
+                            .replace("%players%", String.valueOf(Optional.ofNullable(sign.getOnlinePlayers()).orElse(0)))
+                            .replace("%maxplayers%", String.valueOf(Optional.ofNullable(sign.getMaxPlayers()).orElse(0)))
+                            .replace("%motd%", Optional.ofNullable(sign.getMotd()).orElse("Welcome!")));
+                    bukkitSign.setLine(i, line);
+                }
+                bukkitSign.update();
             }
-            bukkitSign.update();
-        }
+        });
     }
+
 
     @EventHandler
     public void onSignChange(SignChangeEvent event) {
@@ -159,8 +187,7 @@ public class ServerSignManager implements Listener {
             serverSigns.put(loc, serverSign);
             saveSign(loc, server);
             pendingSignCreations.remove(player);
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    configManager.getConfig().getString("messages.sign.created")));
+            player.sendMessage(ChatColor.GREEN + "Sign linked to " + server + " successfully created.");
             updateSignDisplay(serverSign, loc, signFormat);
         }
     }
@@ -181,12 +208,16 @@ public class ServerSignManager implements Listener {
                             player.sendMessage(ChatColor.RED + "Please wait before using this sign again.");
                         }
                     } else {
-                        player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                                configManager.getConfig().getString("messages.sign.no-permission")));
+                        player.sendMessage(ChatColor.RED + "You don't have permission to use this sign.");
                     }
                 }
             }
         }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        pendingSignCreations.remove(event.getPlayer());
     }
 
     private boolean checkCooldown(Player player) {
@@ -208,14 +239,13 @@ public class ServerSignManager implements Listener {
             out.writeUTF("Connect");
             out.writeUTF(server);
             player.sendPluginMessage(plugin, "BungeeCord", b.toByteArray());
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    configManager.getConfig().getString("messages.sign.connecting")
-                            .replace("%server%", server)));
-        } catch (Exception e) {
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    configManager.getConfig().getString("messages.sign.error")
-                            .replace("%server%", server)));
+            player.sendMessage(ChatColor.GREEN + "Connecting to server: " + server + "...");
+        } catch (IOException e) {
+            player.sendMessage(ChatColor.RED + "Failed to connect to server " + server + ". Please try again.");
             plugin.getLogger().warning("Error connecting player " + player.getName() + " to " + server + ": " + e.getMessage());
+        } catch (Exception e) {
+            player.sendMessage(ChatColor.RED + "An unexpected error occurred while connecting.");
+            plugin.getLogger().warning("Unexpected error connecting player " + player.getName() + " to " + server + ": " + e.getMessage());
         }
     }
 
@@ -224,25 +254,30 @@ public class ServerSignManager implements Listener {
             pendingSignCreations.put(player, server);
             player.sendMessage(ChatColor.GREEN + "Right-click a sign to link it to " + server);
         } else {
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    configManager.getConfig().getString("messages.sign.no-permission")));
+            player.sendMessage(ChatColor.RED + "You don't have permission to create server signs.");
         }
     }
 
     private void saveSign(Location loc, String server) {
         String path = "server-signs.servers." + server + ".signs";
-        configManager.getConfig().set(path + "." + loc.getWorld().getName() + "." + loc.getX() + "." + loc.getY() + "." + loc.getZ(), null);
+        ConfigurationSection signsSection = configManager.getConfig().getConfigurationSection(path);
+        if (signsSection == null) {
+            signsSection = configManager.getConfig().createSection(path);
+        }
+        signsSection.set(loc.getWorld().getName() + "." + loc.getBlockX() + "." + loc.getBlockY() + "." + loc.getBlockZ(), "Linked to " + server);
         plugin.saveConfig();
     }
 
     public void removeSign(Player player, Location location) {
         if (player.hasPermission("lynx.serversigns.remove")) {
-            if (serverSigns.containsKey(location)) {
-                serverSigns.remove(location);
-                player.sendMessage(ChatColor.GREEN + "Server sign removed successfully.");
-                removeSignFromConfig(location);
-            } else {
-                player.sendMessage(ChatColor.RED + "No server sign found at this location.");
+            synchronized (serverSigns) {
+                if (serverSigns.containsKey(location)) {
+                    serverSigns.remove(location);
+                    player.sendMessage(ChatColor.GREEN + "Server sign removed successfully.");
+                    removeSignFromConfig(location);
+                } else {
+                    player.sendMessage(ChatColor.RED + "No server sign found at this location.");
+                }
             }
         } else {
             player.sendMessage(ChatColor.RED + "You don't have permission to remove server signs.");
@@ -260,15 +295,17 @@ public class ServerSignManager implements Listener {
             for (String serverName : serversSection.getKeys(false)) {
                 ConfigurationSection serverSection = serversSection.getConfigurationSection(serverName);
                 ConfigurationSection signsSection = serverSection.getConfigurationSection("signs");
-                for (String key : signsSection.getKeys(false)) {
-                    ConfigurationSection signSection = signsSection.getConfigurationSection(key);
-                    if (signSection.getString("world").equals(world) &&
-                            signSection.getDouble("x") == x &&
-                            signSection.getDouble("y") == y &&
-                            signSection.getDouble("z") == z) {
-                        signSection.set(null);
-                        plugin.saveConfig();
-                        return;
+                if (signsSection != null) {
+                    for (String key : signsSection.getKeys(false)) {
+                        ConfigurationSection signSection = signsSection.getConfigurationSection(key);
+                        if (signSection.getString("world").equals(world) &&
+                                signSection.getDouble("x") == x &&
+                                signSection.getDouble("y") == y &&
+                                signSection.getDouble("z") == z) {
+                            signsSection.set(key, null);
+                            plugin.saveConfig();
+                            return;
+                        }
                     }
                 }
             }

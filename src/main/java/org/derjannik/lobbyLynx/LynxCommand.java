@@ -1,8 +1,6 @@
-
 package org.derjannik.lobbyLynx;
 
 import org.bukkit.ChatColor;
-
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -11,7 +9,6 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
-
 
 public class LynxCommand implements CommandExecutor, TabCompleter {
 
@@ -74,9 +71,9 @@ public class LynxCommand implements CommandExecutor, TabCompleter {
                     player.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
                 }
                 break;
-            case "bungeesign":
-                if (player.hasPermission("lynx.bungeesigns.admin")) {
-                    handleBungeeSignCommand(player, args);
+            case "serversign": // New case for server sign commands
+                if (player.hasPermission("lynx.serversigns.admin")) {
+                    handleServerSignCommand(player, args);
                 } else {
                     player.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
                 }
@@ -112,29 +109,30 @@ public class LynxCommand implements CommandExecutor, TabCompleter {
         if (player.hasPermission("lynx.reload")) {
             player.sendMessage(ChatColor.YELLOW + "/lynx reload " + ChatColor.WHITE + "- Reload LobbyLynx configuration");
         }
-        if (player.hasPermission("lynx.bungeesigns.admin")) {
-            player.sendMessage(ChatColor.YELLOW + "/lynx bungeesign <server> " + ChatColor.WHITE + "- Links a sign to a BungeeCord server");
-            player.sendMessage(ChatColor.YELLOW + "/lynx bungeesign info " + ChatColor.WHITE + "- Displays info about the server linked to the sign");
-            player.sendMessage(ChatColor.YELLOW + "/lynx create bungeesign " + ChatColor.WHITE + "- Starts sign creation process");
+        if (player.hasPermission("lynx.serversigns.admin")) {
+            player .sendMessage(ChatColor.YELLOW + "/lynx serversign <create|remove> [server] " + ChatColor.WHITE + "- Manage server signs");
         }
     }
 
-    private void handleBungeeSignCommand(Player player, String[] args) {
+    private void handleServerSignCommand(Player player, String[] args) {
         if (args.length < 2) {
-            player.sendMessage(ChatColor.RED + "Usage: /lynx bungeesign <server|info|create>");
+            player.sendMessage(ChatColor.RED + "Usage: /lynx serversign <create|remove> [server]");
             return;
         }
 
         switch (args[1].toLowerCase()) {
             case "create":
-                plugin.getBungeeSignManager().startSignCreation(player);
+                if (args.length < 3) {
+                    player.sendMessage(ChatColor.RED + "Usage: /lynx serversign create <server>");
+                    return;
+                }
+                plugin.getServerSignManager().createSign(player, args[2]);
                 break;
-            case "info":
-                plugin.getBungeeSignManager().displaySignInfo(player);
+            case "remove":
+                plugin.getServerSignManager().removeSign(player, player.getTargetBlock(null, 5).getLocation());
                 break;
             default:
-                plugin.getBungeeSignManager().linkSignToServer(player, args[1]);
-                break;
+                player.sendMessage(ChatColor.RED + "Unknown subcommand. Use 'create' or 'remove'.");
         }
     }
 
@@ -148,11 +146,12 @@ public class LynxCommand implements CommandExecutor, TabCompleter {
             completions.add("gamerules");
             completions.add("set");
             completions.add("reload");
-            completions.add("bungeesign");
+            completions.add("serversign"); // Add serversign to tab completion
             completions.add("help");
         }
         return completions;
     }
+
     private void handleSetCommand(Player player, String[] args) {
         // Example logic for handling "set" subcommands
         if ("minigame".equalsIgnoreCase(args[1])) {
@@ -163,5 +162,4 @@ public class LynxCommand implements CommandExecutor, TabCompleter {
             player.sendMessage(ChatColor.RED + "Invalid option for /lynx set. Use /lynx help for more info.");
         }
     }
-
 }

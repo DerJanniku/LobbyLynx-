@@ -1,4 +1,3 @@
-
 # LobbyLynx Configuration
 
 # Navigator GUI settings
@@ -79,8 +78,6 @@ game_rules:
   alwaysDay: true
   noWeather: true
 
-# [Previous navigator, gamerule, settings, lobby settings, and game rules sections remain unchanged]
-
 # Plugin settings
 plugin:
   debug_mode: false
@@ -100,45 +97,29 @@ minigames:
 messages:
   join: "&aWelcome to the server, %player%!"
   quit: "&e%player% has left the server."
-  sign:
-    created: "&aServer sign created successfully!"
-    removed: "&cServer sign removed!"
-    no-permission: "&cYou don't have permission to use this sign!"
-    connecting: "&aConnecting to %server%..."
-    error: "&cCouldn't connect to %server%!"
 
 # Server Signs Configuration
 server-signs:
   update-interval: 20 # Ticks between updates (20 ticks = 1 second)
+  cooldown: 3000 # Cooldown time in milliseconds
   format:
     - "&8[&bServer&8]"
     - "%server%"
     - "%players%/%maxplayers%"
     - "&aClick to join!"
+  animation-frames:
+    - "&8[&bServer&8]|%server%|%players%/%maxplayers%|&aClick to join!"
+    - "&8[&bServer&8]|%server%|%players%/%maxplayers%|&eClick to join!"
   servers:
     lobby:
       display-name: "&aLobby"
+      signs: []
     survival:
       display-name: "&eSurvival"
-      signs:
-        - world: "world"
-          x: 0
-          y: 64
-          z: 0
+      signs: []
     creative:
       display-name: "&bCreative"
-      signs:
-        - world: "world"
-          x: 10
-          y: 64
-          z: 10
-    minigames:
-      display-name: "&6Minigames"
-      signs:
-        - world: "world"
-          x: 20
-          y: 64
-          z: 20
+      signs: []
 
 # Destinations for local teleports
 destinations:
