@@ -24,6 +24,7 @@ public class LobbyLynx extends JavaPlugin {
     private boolean elytraAllowed;
     private boolean tntExplosionsAllowed;
     private FriendManager friendManager;
+    private FriendGUI friendGUI;
 
     @Override
     public void onEnable() {
@@ -35,7 +36,8 @@ public class LobbyLynx extends JavaPlugin {
         this.friendManager = new FriendManager(this);
         getCommand("friend").setExecutor(new org.derjannik.lobbyLynx.command.FriendCommand(this, friendManager));
 
-        friendManager = new FriendManager(this);
+        // Add these lines after initializing friendManager
+        FriendGUI friendGUI = new FriendGUI(this, friendManager);
         getServer().getPluginManager().registerEvents(friendGUI, this);
         // Register FriendCommand
         org.derjannik.lobbyLynx.command.FriendCommand friendCommand = new org.derjannik.lobbyLynx.command.FriendCommand(this, friendManager);
@@ -142,6 +144,13 @@ public class LobbyLynx extends JavaPlugin {
 
     public ServerSignManager getServerSignManager() {
         return serverSignManager; // Added getter method
+    }
+    public FriendManager getFriendManager() {
+        return friendManager;
+    }
+
+    public FriendGUI getFriendGUI() {
+        return friendGUI;
     }
 
     public void reloadNavigator() {
@@ -254,12 +263,5 @@ class TNTExplosionListener implements Listener {
         if (event.getEntity() instanceof TNTPrimed && !plugin.areTNTExplosionsAllowed()) {
             event.setCancelled(true);
         }
-    }
-    public FriendManager getFriendManager() {
-        return friendManager;
-    }
-
-    public FriendGUI getFriendGUI() {
-        return friendGUI;
     }
 }
