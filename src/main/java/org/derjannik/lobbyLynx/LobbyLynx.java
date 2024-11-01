@@ -23,6 +23,7 @@ public class LobbyLynx extends JavaPlugin {
     private boolean blockPlacementAllowed;
     private boolean elytraAllowed;
     private boolean tntExplosionsAllowed;
+    private FriendManager friendManager;
 
     @Override
     public void onEnable() {
@@ -30,6 +31,9 @@ public class LobbyLynx extends JavaPlugin {
         configManager = new ConfigManager(this);
         configManager.loadConfig();
 
+        //New Friend Manager
+        friendManager = new FriendManager(this);
+        getCommand("friend").setExecutor(new org.derjannik.lobbyLynx.command.FriendCommand(this, friendManager));
         // Initialize CustomScoreboard and CustomTablist
         customScoreboard = new CustomScoreboard(this, configManager);
         customTablist = new CustomTablist(this, configManager);

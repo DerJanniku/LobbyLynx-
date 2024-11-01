@@ -22,6 +22,13 @@ commands:
     usage: /lobby
     aliases: [hub, spawn]
     permission: lynx.use
+  friend:
+    description: Friend system commands
+    usage: /<command> <list|add|remove|requests|accept> [player]
+    permission: lynx.friend.use
+    permission-message: You don't have permission to use this command.
+
+
 
 permissions:
   lynx.admin:
@@ -53,4 +60,7 @@ permissions:
     default: op
   lynx.serversigns.use:
     description: Allows usage of server signs
+    default: true
+  lynx.friend.use:
+    description: Allows use of the friend system
     default: true
