@@ -42,10 +42,8 @@ public class LobbyLynx extends JavaPlugin {
 
         // Register commands with null checks to prevent NullPointerExceptions
         LynxCommand lynxCommand = new LynxCommand(this, configManager);
-        if (getCommand("lynx") != null) {
-            getCommand("lynx").setExecutor(lynxCommand);
-            getCommand("lynx").setTabCompleter(lynxCommand);
-        }
+        getCommand("lynx").setExecutor(lynxCommand);
+        getCommand("lynx").setTabCompleter(lynxCommand);
 
         // Register common commands with null checks
         CommonCommands commonCommands = new CommonCommands(this, configManager);

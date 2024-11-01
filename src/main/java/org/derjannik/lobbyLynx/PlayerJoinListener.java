@@ -64,14 +64,11 @@ public class PlayerJoinListener implements Listener {
         customTablist.setTablist(player);
     }
 
+    // In PlayerJoinListener.java
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
-        // Check if the player right-clicked with the Navigator
-        if (event.getItem() != null && event.getItem().getType() == Material.COMPASS
-                && event.getItem().getItemMeta() != null
-                && event.getItem().getItemMeta().getDisplayName().equals(ChatColor.translateAlternateColorCodes('&', configManager.getNavigatorTitle()))) {
-            // Open the GUI
-            new NavigatorGUI(plugin).openGUI(event.getPlayer());
+        if (event.getItem() != null && event.getItem().getType() == Material.COMPASS) {
+            new NavigatorGUI(plugin, configManager).openGUI(event.getPlayer());
         }
     }
 }
