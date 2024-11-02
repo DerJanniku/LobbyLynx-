@@ -1,4 +1,3 @@
-
 package org.derjannik.lobbyLynx.gui;
 
 import org.bukkit.Bukkit;
@@ -31,10 +30,18 @@ public class SettingsGUI implements Listener {
         int size = configManager.getSettingsSize();
         Inventory gui = Bukkit.createInventory(null, size, title);
 
-        gui.setItem(0, createGuiItem(Material.DIAMOND_SWORD, "Gamerules", "Öffne die Gamerule-Einstellungen", "und passe die Spielregeln an."));
-        gui.setItem(1, createGuiItem(Material.COMMAND_BLOCK, "Admin Commands", "Klicke, um alle Admin-Befehle zu sehen."));
-        gui.setItem(2, createGuiItem(Material.ANVIL, "Player Management", "Verwalte Spieler-Optionen", "und führe den /uperms-Befehl aus."));
-        gui.setItem(3, createGuiItem(Material.CHEST, "Cosmetics Setup", "Passe die Kosmetik-Optionen an.", "Diese Funktion wird später hinzugefügt."));
+        gui.setItem(1, createGuiItem(Material.DIAMOND_SWORD, "Game Rules",
+                "Open game rule settings",
+                "and adjust game mechanics."));
+        gui.setItem(2, createGuiItem(Material.ANVIL, "Player Management",
+                "Manage player options",
+                "and execute the /uperms command."));
+        gui.setItem(4, createGuiItem(Material.COMMAND_BLOCK, "Admin Commands",
+                "View all available",
+                "admin commands."));
+        gui.setItem(5, createGuiItem(Material.CHEST, "Cosmetics",
+                "Customize your appearance",
+                "with various cosmetic items."));
 
         player.openInventory(gui);
     }
@@ -63,13 +70,13 @@ public class SettingsGUI implements Listener {
                         new GameruleGUI(plugin, configManager).openGameruleGUI(player, 0);
                         break;
                     case COMMAND_BLOCK:
-                        player.sendMessage(ChatColor.GREEN + "Admin-Befehle: /lynx, /uperms, usw.");
+                        player.sendMessage(ChatColor.GREEN + "Admin Commands: /lynx, /uperms, etc.");
                         break;
                     case ANVIL:
                         player.performCommand("uperms");
                         break;
                     case CHEST:
-                        player.sendMessage(ChatColor.YELLOW + "Kosmetik-Einstellungen sind noch nicht implementiert.");
+                        player.sendMessage(ChatColor.YELLOW + "Cosmetic settings are not yet implemented.");
                         break;
                 }
             }

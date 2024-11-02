@@ -26,6 +26,13 @@ commands:
     description: Manage your friends
     usage: /friend <list|add|remove|requests|accept|deny> [player]
     aliases: [f]
+  ad:
+    description: Verwalte Serverwerbungen
+    usage: /ad <create|remove|list|show> [args...]
+    aliases: [ ads, advertisement ]
+    permission: lobbylynx.ads.admin
+
+
 
 
 
@@ -69,3 +76,9 @@ permissions:
   lobbylynx.friend.manage:
     description: Allows managing friends
     default: true
+  lobbylynx.ads.admin:
+    description: Erlaubt die Verwaltung von Werbungen
+    default: op
+  lobbylynx.ads.bypass:
+    description: Verhindert das Anzeigen von Werbungen
+    default: false

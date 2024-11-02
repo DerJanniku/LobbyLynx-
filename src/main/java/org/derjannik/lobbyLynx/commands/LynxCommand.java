@@ -11,6 +11,8 @@ import org.derjannik.lobbyLynx.gui.NavigatorGUI;
 import org.derjannik.lobbyLynx.gui.SettingsGUI;
 import org.derjannik.lobbyLynx.gui.GameruleGUI;
 import org.derjannik.lobbyLynx.managers.ConfigManager;
+import org.derjannik.lobbyLynx.managers.FriendManager;
+import org.derjannik.lobbyLynx.enums.PrivacyLevel;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,11 +23,14 @@ public class LynxCommand implements CommandExecutor, TabCompleter {
 
     private final LobbyLynx plugin;
     private final ConfigManager configManager;
+    private final FriendManager friendManager;
 
-    public LynxCommand(LobbyLynx plugin, ConfigManager configManager) {
+    public LynxCommand(LobbyLynx plugin, ConfigManager configManager, FriendManager friendManager) {
         this.plugin = plugin;
         this.configManager = configManager;
+        this.friendManager = friendManager;
     }
+
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -61,6 +66,12 @@ public class LynxCommand implements CommandExecutor, TabCompleter {
                 case "serversign":
                     handleServerSignCommand(player, args);
                     break;
+                case "friends":
+                    handleFriendsCommand(player, args);
+                    break;
+                case "privacy":
+                    handlePrivacyCommand(player, args);
+                    break;
                 case "help":
                     sendHelpMessage(player);
                     break;
@@ -76,6 +87,7 @@ public class LynxCommand implements CommandExecutor, TabCompleter {
 
         return true;
     }
+
 
     private void handleNavigatorCommand(Player player) {
         if (player.hasPermission("lynx.navigator")) {
@@ -195,6 +207,8 @@ public class LynxCommand implements CommandExecutor, TabCompleter {
         sendConditionalHelpMessage(player, "lynx.setlobbyspawn", "/lynx set lobbyspawn", "Set lobby spawn location");
         sendConditionalHelpMessage(player, "lynx.reload", "/lynx reload", "Reload LobbyLynx configuration");
         sendConditionalHelpMessage(player, "lynx.serversigns.admin", "/lynx serversign <create|remove> [server]", "Manage server signs");
+        sendConditionalHelpMessage(player, "lyn x.friends", "/lynx friends <list|add|remove|accept|deny>", "Manage friends");
+        sendConditionalHelpMessage(player, "lynx.privacy", "/lynx privacy <public|friends|private>", "Manage privacy settings");
     }
 
     private void sendConditionalHelpMessage(Player player, String permission, String command, String description) {
@@ -203,18 +217,129 @@ public class LynxCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void handleFriendsCommand(Player player, String[] args) {
+        if (!player.hasPermission("lynx.friends")) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to use friend commands.");
+            return;
+        }
+
+        if (args.length < 2) {
+            player.sendMessage(ChatColor.RED + "Usage: /lynx friends <list|add|remove|accept|deny>");
+            return;
+        }
+
+        switch (args[1].toLowerCase()) {
+            case "list":
+                List<String> friends = friendManager.getFriends(player.getName());
+                if (friends.isEmpty()) {
+                    player.sendMessage(ChatColor.YELLOW + "You don't have any friends yet.");
+                    return;
+                }
+                player.sendMessage(ChatColor.GOLD + "=== Your Friends ===");
+                for (String friend : friends) {
+                    boolean isOnline = plugin.getServer().getPlayer(friend) != null;
+                    player.sendMessage(ChatColor.YELLOW + friend +
+                            (isOnline ? ChatColor.GREEN + " (Online)" : ChatColor.RED + " (Offline)"));
+                }
+                break;
+            case "add":
+                if (args.length < 3) {
+                    player.sendMessage(ChatColor.RED + "Usage: /lynx friends add <player>");
+                    return;
+                }
+                String targetName = args[2];
+                if (targetName.equals(player.getName())) {
+                    player.sendMessage(ChatColor.RED + "You cannot add yourself as a friend.");
+                    return;
+                }
+                friendManager.sendFriendRequest(player.getName(), targetName);
+                player.sendMessage(ChatColor.GREEN + "Friend request sent to " + targetName);
+                break;
+            case "remove":
+                if (args.length < 3) {
+                    player.sendMessage(ChatColor.RED + "Usage: /lynx friends remove <player>");
+                    return;
+                }
+                friendManager.removeFriend(player.getName(), args[2]);
+                player.sendMessage(ChatColor.GREEN + "Removed " + args[2] + " from your friends list.");
+                break;
+            case "accept":
+                if (args.length < 3) {
+                    player.sendMessage(ChatColor.RED + "Usage: /lynx friends accept <player>");
+                    return;
+                }
+                friendManager.acceptRequest(player.getName(), args[2]);
+                player.sendMessage(ChatColor.GREEN + "Accepted friend request from " + args[2]);
+                break;
+            case "deny":
+                if (args.length < 3) {
+                    player.sendMessage(ChatColor.RED + "Usage: /lynx friends deny <player>");
+                    return;
+                }
+                friendManager.denyRequest(player.getName(), args[2]);
+                player.sendMessage(ChatColor.GREEN + "Denied friend request from " + args[2]);
+                break;
+            default:
+                player.sendMessage(ChatColor.RED + "Unknown friends command. Available commands: list, add, remove, accept, deny");
+                break;
+        }
+    }
+
+    private void handlePrivacyCommand(Player player, String[] args) {
+        if (!player.hasPermission("lynx.privacy")) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to change privacy settings.");
+            return;
+        }
+
+        if (args.length < 2) {
+            player.sendMessage(ChatColor.RED + "Usage: /lynx privacy <public|private|friends>");
+            return;
+        }
+
+        try {
+            PrivacyLevel level = PrivacyLevel.valueOf(args[1].toUpperCase());
+            friendManager.setPrivacyLevel(player.getName(), level);
+            player.sendMessage(ChatColor.GREEN + "Privacy level set to " + level.toString().toLowerCase());
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(ChatColor.RED + "Invalid privacy level. Use: public, private, or friends");
+        }
+    }
+
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
 
         if (args.length == 1) {
-            completions.addAll(Arrays.asList("navigator", "settings", "gamerules", "set", "reload", "serversign", "help"));
-        } else if (args.length == 2 && "set".equals(args[0].toLowerCase())) {
-            completions.addAll(Arrays.asList("minigame", "lobbyspawn"));
-        } else if (args.length == 2 && "serversign".equals(args[0].toLowerCase())) {
-            completions.addAll(Arrays.asList("create", "remove"));
+            completions.addAll(Arrays.asList(
+                    "navigator", "settings", "gamerules", "set", "reload",
+                    "serversign", "help", "friends", "privacy"
+            ));
+        } else if (args.length == 2) {
+            switch (args[0].toLowerCase()) {
+                case "set":
+                    completions.addAll(Arrays.asList("minigame", "lobbyspawn"));
+                    break;
+                case "serversign":
+                    completions.addAll(Arrays.asList("create", "remove"));
+                    break;
+                case "friends":
+                    completions.addAll(Arrays.asList("list", "add", "remove", "accept", "deny"));
+                    break;
+                case "privacy":
+                    completions.addAll(Arrays.asList("public", "friends", "private"));
+                    break;
+            }
+        } else if (args.length == 3) {
+            if (args[0].equalsIgnoreCase("friends")) {
+                if (Arrays.asList("add", "remove", "accept", "deny").contains(args[1].toLowerCase())) {
+                    return null; // Return null to show online players
+                }
+            }
         }
 
-        return completions.stream().filter(completion -> completion.startsWith(args[args.length - 1].toLowerCase())).collect(Collectors.toList());
+        return completions.stream()
+                .filter(completion -> completion.toLowerCase().startsWith(args[args.length - 1].toLowerCase()))
+                .collect(Collectors.toList());
     }
 }

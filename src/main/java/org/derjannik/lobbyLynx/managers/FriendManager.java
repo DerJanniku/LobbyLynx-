@@ -329,10 +329,10 @@ public class FriendManager {
         notifyPlayer(name, ChatColor.GREEN + "Last seen visibility set to " + (showLastSeen ? "on" : "off"));
     }
 
-    public void setPrivacyLevel(String name, PrivacyLevel level) {
-        PrivacySettings settings = privacySettingsMap.computeIfAbsent(name, k -> new PrivacySettings());
+    public void setPrivacyLevel(String playerName, PrivacyLevel level) {
+        PrivacySettings settings = privacySettingsMap.computeIfAbsent(playerName, k -> new PrivacySettings());
         settings.privateMode = (level == PrivacyLevel.PRIVATE);
-        notifyPlayer(name, ChatColor.GREEN + "Privacy level set to " + (settings.privateMode ? "private" : "public"));
+        notifyPlayer(playerName, ChatColor.GREEN + "Privacy level set to " + (settings.privateMode ? "private" : "public"));
     }
 
     public Set<String> getBlockedPlayers(String playerName) {

@@ -3,31 +3,31 @@
 # Navigator GUI settings
 navigator:
   gui:
-    title: "Navigator"
+    title: Navigator
     size: 45
   lobby_spawn:
     slot: 22
     item: NETHER_STAR
-    world: "world"
+    world: world
     x: 0.0
     y: 90.0
     z: 0.0
   notifications:
-    welcome_message: "Welcome to the Lobby!"
+    welcome_message: Welcome to the Lobby!
     new_players_only: true
     always: true
   teleport_message:
     enabled: true
-    text: "Teleporting to %minigame%..."
+    text: Teleporting to %minigame%...
 
 # Gamerule GUI settings
 gamerule_gui:
-  title: "Game Rules"
+  title: Game Rules
   size: 54
 
 # Settings GUI settings
 settings_gui:
-  title: "Settings"
+  title: Settings
   size: 27
 
 # Lobby settings
@@ -39,7 +39,12 @@ lobby_settings:
 
 # Game rules
 game_rules:
-  doTileDrops: true
+  pvp: false
+  disableElytra: true
+  keepSpawnInMemory: false
+  fireSpread: false
+  logAdminCommands: false
+  doTileDrops: false
   doExpDrops: true
   doDaylightCycle: true
   doMobSpawning: false
@@ -53,13 +58,13 @@ game_rules:
   mobGriefing: false
   doMobLoot: true
   doEntityDrops: true
-  doWeatherCycle: false
+  doWeatherCycle: true
   doImmediateRespawn: false
   announceAdvancements: true
   disableRaids: true
   doInsomnia: false
   drowningDamage: true
-  fallDamage: true
+  fallDamage: false
   fireDamage: true
   freezeDamage: true
   doPatrolSpawning: false
@@ -77,6 +82,8 @@ game_rules:
   allowPvp: false
   alwaysDay: true
   noWeather: true
+  blockPlacement: false
+  blockBreaking: false
 
 # Plugin settings
 plugin:
@@ -85,46 +92,46 @@ plugin:
 # Minigames (example)
 minigames:
   example_game:
-    name: "Example Game"
+    name: Example Game
     slot: 1
     item: DIAMOND_SWORD
-    world: "world"
+    world: world
     x: 100.0
     y: 64.0
     z: 100.0
 
 # Messages
 messages:
-  join: "&aWelcome to the server, %player%!"
-  quit: "&e%player% has left the server."
+  join: '&aWelcome to the server, %player%!'
+  quit: '&e%player% has left the server.'
 
 # Server Signs Configuration
 server-signs:
   update-interval: 20 # Ticks between updates (20 ticks = 1 second)
   cooldown: 3000 # Cooldown time in milliseconds
   format:
-    - "&8[&bServer&8]"
-    - "%server%"
-    - "%players%/%maxplayers%"
-    - "&aClick to join!"
+    - '&8[&bServer&8]'
+    - '%server%'
+    - '%players%/%maxplayers%'
+    - '&aClick to join!'
   animation-frames:
-    - "&8[&bServer&8]|%server%|%players%/%maxplayers%|&aClick to join!"
-    - "&8[&bServer&8]|%server%|%players%/%maxplayers%|&eClick to join!"
+    - '&8[&bServer&8]|%server%|%players%/%maxplayers%|&aClick to join!'
+    - '&8[&bServer&8]|%server%|%players%/%maxplayers%|&eClick to join!'
   servers:
     lobby:
-      display-name: "&aLobby"
+      display-name: '&aLobby'
       signs: []
     survival:
-      display-name: "&eSurvival"
+      display-name: '&eSurvival'
       signs: []
     creative:
-      display-name: "&bCreative"
+      display-name: '&bCreative'
       signs: []
 
 # Destinations for local teleports
 destinations:
   lobby_spawn:
-    world: "world"
+    world: world
     x: 0.0
     y: 90.0
     z: 0.0
@@ -133,31 +140,39 @@ destinations:
 
 # Tablist settings
 tablist:
-  header: "&6YourNetwork.net"
-  footer: "&ayourserver.com"
+  header: '&6YourNetwork.net'
+  footer: '&ayourserver.com'
 
 # Scoreboard settings
 scoreboard:
-  title: "&eYourServer - Lobby"
+  title: '&eYourServer - Lobby'
   lines:
-    - "&7Welcome to the lobby!"
-    - "&7Players online: &a%online_players%"
-    - "&7Your rank: &6%player_rank%"
+    - '&7Welcome to the lobby!'
+    - '&7Players online: &a%online_players%'
+    - '&7Your rank: &6%player_rank%'
 # Hat settings
 hats:
   enabled: true
-  default_hat: "default"
+  default_hat: default
   permission_required: true
   available_hats:
     default:
       material: LEATHER_HELMET
-      display_name: "&6Default Hat"
-      permission: "lobbylynx.hat.default"
+      display_name: '&6Default Hat'
+      permission: lobbylynx.hat.default
     gold:
       material: GOLDEN_HELMET
-      display_name: "&6Golden Hat"
-      permission: "lobbylynx.hat.gold"
+      display_name: '&6Golden Hat'
+      permission: lobbylynx.hat.gold
     diamond:
       material: DIAMOND_HELMET
-      display_name: "&bDiamond Hat"
-      permission: "lobbylynx.hat.diamond"
+      display_name: '&bDiamond Hat'
+      permission: lobbylynx.hat.diamond
+advertisements:
+  'Ads':
+    title: 'Ads'
+    content:
+      - '&Test'
+    type: BOSSBAR
+    duration: 1000
+    permission: ''
