@@ -1,0 +1,209 @@
+# Navigator GUI settings
+navigator:
+  gui:
+    title: Navigator
+    size: 45
+  lobby_spawn:
+    slot: 22
+    item: NETHER_STAR
+    world: world
+    x: 0.0
+    y: 90.0
+    z: 0.0
+  notifications:
+    welcome_message: Welcome to the Lobby!
+    new_players_only: true
+    always: true
+  teleport_message:
+    enabled: true
+    text: Teleporting to %minigame%...
+
+# Gamerule GUI settings
+gamerule_gui:
+  title: Game Rules
+  size: 54
+
+# Settings GUI settings
+settings_gui:
+  title: Settings
+  size: 27
+
+# Lobby settings
+lobby_settings:
+  flight_enabled: false
+  double_jump_enabled: false
+  pvp_enabled: false
+  lobby_time: 6000
+
+# Game rules
+game_rules:
+  pvp: false
+  disableElytra: true
+  keepSpawnInMemory: false
+  fireSpread: false
+  logAdminCommands: false
+  doTileDrops: false
+  doExpDrops: true
+  doDaylightCycle: true
+  doMobSpawning: false
+  naturalRegeneration: true
+  doFireTick: false
+  commandBlockOutput: false
+  doLimitedCrafting: false
+  randomTickSpeed: 3
+  sendCommandFeedback: true
+  keepInventory: true
+  mobGriefing: false
+  doMobLoot: true
+  doEntityDrops: true
+  doWeatherCycle: true
+  doImmediateRespawn: false
+  announceAdvancements: true
+  disableRaids: true
+  doInsomnia: false
+  drowningDamage: true
+  fallDamage: false
+  fireDamage: true
+  freezeDamage: true
+  doPatrolSpawning: false
+  doTraderSpawning: false
+  doWardenSpawning: false
+  forgiveDeadPlayers: true
+  universalAnger: false
+  showDeathMessages: true
+  spawnRadius: 0
+  spectatorsGenerateChunks: false
+  allowBlockBreaking: false
+  allowBlockPlacing: false
+  tnt: false
+  allowExplosions: false
+  allowPvp: false
+  alwaysDay: true
+  noWeather: true
+  blockPlacement: false
+  blockBreaking: false
+
+# Plugin settings
+plugin:
+  debug_mode: false
+
+# Messages
+messages:
+  join: '&aWelcome to the server, %player%!'
+  quit: '&e%player% has left the server.'
+
+# Server Signs Configuration
+server-signs:
+  update-interval: 20 # Ticks between updates (20 ticks = 1 second)
+  cooldown: 3000 # Cooldown time in milliseconds
+  format:
+    - '&8[&bServer&8]'
+    - '%server%'
+    - '%players%/%maxplayers%'
+    - '&aClick to join!'
+  animation-frames:
+    - '&8[&bServer&8]|%server%|%players%/%maxplayers%|&aClick to join!'
+    - '&8[&bServer&8]|%server%|%players%/%maxplayers%|&eClick to join!'
+  servers:
+    lobby:
+      display-name: '&aLobby'
+      signs: []
+    survival:
+      display-name: '&eSurvival'
+      signs: []
+    creative:
+      display-name: '&bCreative'
+      signs: []
+
+# Destinations for local teleports
+destinations:
+  lobby_spawn:
+    world: world
+    x: 0.0
+    y: 90.0
+    z: 0.0
+    yaw: 0.0
+    pitch: 0.0
+
+# Tablist settings
+tablist:
+  # Header shown at the top of the tablist
+  header: "&6lynx.mc Lobby\n&7Do you want to report a player? &c/report <player>"
+
+  # Footer shown at the bottom of the tablist
+  footer: "&7Add friends, create parties, or make your clan with &a/friend&7, &a/party&7, and &a/clan"
+
+  # Customize player display
+  player_display:
+    # Default prefix to use if a rank prefix isn't specified
+    default_prefix: "&7[User] "
+
+    # Customize rank prefixes. These will appear in front of player names in the tablist.
+    rank_prefixes:
+      Admin: "&c[Admin] "
+      Moderator: "&b[Mod] "
+      VIP: "&a[VIP] "
+      # Add more ranks as needed with corresponding prefixes
+
+    # Show connection strength indicators based on player ping
+    show_connection_strength: true
+
+  # Customize icons next to player names
+  icons:
+    enabled: true               # Enable or disable icons next to player names
+    default_icon: "⬤"           # Default icon for players without specific ranks
+    icons_by_rank:
+      Admin: "★"                # Icon for Admin rank
+      Moderator: "✦"            # Icon for Moderator rank
+      VIP: "✿"                  # Icon for VIP rank
+      # Add more ranks and icons as needed
+
+
+# Scoreboard settings
+scoreboard:
+  title: '&6lynx.mc' # Title displayed at the top of the scoreboard
+  default_rank: 'Spieler' # Default rank if player rank is not found
+  default_coins: 0 # Default coins if player coins are not found
+  default_gold: 0 # Default gold if player gold is not found
+  default_clan: 'Kein Clan' # Default clan if player clan is not found
+  max_friends: 6 # Maximum friends count displayed in the scoreboard
+
+
+# Hat settings
+hats:
+  enabled: true
+  default_hat: default
+  permission_required: true
+  available_hats:
+    default:
+      material: LEATHER_HELMET
+      display_name: '&6Default Hat'
+      permission: lobbylynx.hat.default
+    gold:
+      material: GOLDEN_HELMET
+      display_name: '&6Golden Hat'
+      permission: lobbylynx.hat.gold
+    diamond:
+      material: DIAMOND_HELMET
+      display_name: '&bDiamond Hat'
+      permission: lobbylynx.hat.diamond
+
+# Advertisement settings
+advertisements: {}
+
+# Minigame configuration
+minigames: {}
+
+# Cosmetics configuration
+cosmetics:
+  gui:
+    pets: true
+    available_pets:
+      cow: true
+      sheep: true
+      wolf: true
+    hats: true
+    available_hats:
+      default: true
+      gold: true
+      diamond: true

@@ -1,0 +1,7 @@
+allow_block_breaking: false
+allow_block_placing: false
+allow_tnt_use: false
+allow_explosions: false
+allow_pvp: false
+always_day: true
+no_weather: true

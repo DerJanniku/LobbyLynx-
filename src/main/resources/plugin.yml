@@ -1,0 +1,103 @@
+name: LobbyLynx
+version: '1.0-SNAPSHOT'
+main: org.derjannik.lobbyLynx.LobbyLynx
+api-version: '1.21'
+
+commands:
+  lynx:
+    description: Main command for LobbyLynx (Admin only)
+    usage: |
+      §6=== LobbyLynx Admin Commands ===
+      §e/lynx navigator §f- Open navigator GUI
+      §e/lynx settings §f- Open settings GUI
+      §e/lynx gamerules §f- Open gamerules GUI
+      §e/lynx set minigame <name> <slot> <item> <x> <y> <z> <world>
+      §e/lynx delete minigame <name>
+      §e/lynx set lobbyspawn <slot> <item> <x> <y> <z> <world>
+      §e/lynx reload §f- Reload configuration
+      §e/lynx help §f- Show detailed help
+      §e/lynx serversign <create|remove> [server] §f- Manage server signs
+    permission: lynx.admin
+    aliases: [lobbylynx]
+
+  lobby:
+    description: Teleport to the lobby spawn
+    usage: /lobby
+    aliases: [hub, spawn]
+    permission: lynx.use
+
+  friend:
+    description: Manage your friends
+    usage: /friend <list|add|remove|requests|accept|deny> [player]
+    aliases: [f]
+    permission: lobbylynx.friend.use
+
+  ad:
+    description: Manage server advertisements
+    usage: /ad <create|remove|list|show> [args...]
+    aliases: [ads, advertisement]
+    permission: lobbylynx.ads.admin
+
+  cosmetics:
+    description: Opens the cosmetics menu
+    usage: /cosmetics
+    permission: lobbylynx.cosmetics.use
+
+permissions:
+  lynx.admin:
+    description: Grants access to all admin functionalities
+    default: op
+  lynx.use:
+    description: Allows use of basic LobbyLynx commands (lobby, hub, spawn)
+    default: true
+  lynx.navigator:
+    description: Allows access to the navigator GUI
+    default: op
+  lynx.settings:
+    description: Allows access to the settings GUI
+    default: op
+  lynx.gamerules:
+    description: Allows access to the gamerules GUI
+    default: op
+  lynx.setminigame:
+    description: Allows setting minigame locations
+    default: op
+  lynx.setlobbyspawn:
+    description: Allows setting the lobby spawn location
+    default: op
+  lynx.reload:
+    description: Allows reloading the plugin configuration
+    default: op
+  lynx.serversigns.admin:
+    description: Allows creation and removal of server signs
+    default: op
+  lynx.serversigns.use:
+    description: Allows usage of server signs
+    default: true
+  lobbylynx.friend.use:
+    description: Allows use of the friend system
+    default: true
+  lobbylynx.friend.teleport:
+    description: Allows teleporting to friends
+    default: true
+  lobbylynx.friend.manage:
+    description: Allows managing friends
+    default: true
+  lobbylynx.ads.admin:
+    description: Allows managing advertisements
+    default: op
+  lobbylynx.ads.bypass:
+    description: Prevents ads from displaying
+    default: false
+  lynx.deleteminigame:
+    description: Allows deletion of minigames
+    default: op
+  lynx.pet.cow:
+    description: Allows using the cow pet cosmetic
+    default: true
+  lynx.pet.wolf:
+    description: Allows using the wolf pet cosmetic
+    default: true
+  lobbylynx.cosmetics.use:
+    description: Allows access to the cosmetics menu
+    default: true
